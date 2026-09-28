@@ -39,7 +39,7 @@ BASE_PATH=/2027-cfs pnpm preview
 
 ### 正式站流程
 
-網站設計與靜態內容沿用 2026 年版本，贊助資料來自 [2027 年 Google 試算表](https://docs.google.com/spreadsheets/d/1VCkTOO8Jb1EilClyu3acL9NXixV0-euB1kSoPPod2Bk/edit)。
+網站設計與靜態內容沿用 2026 年版本，贊助資料來自 [2027 年 Google 試算表](https://docs.google.com/spreadsheets/d/1ggq2rcQF1N_KAs_hiLFxa-61mBU1nvT_mx7PLWUtvg4/edit)。
 
 推送至 `main` 或手動執行 **Build CFS site**，會下載試算表資料與圖片、檢查專案，並將建置結果發布至 `build` 分支。建置失敗時會保留上次成功的結果。
 
