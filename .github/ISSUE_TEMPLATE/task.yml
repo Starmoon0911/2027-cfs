@@ -9,9 +9,16 @@ body:
   - type: markdown
     attributes:
       value: |
-        ⚠️ 注意：這個模板原則上只有毛哥 EM 能使用。
+        ⚠️ 注意：這個模板原則上只有 Nathan 能使用。
         請勿用此模板回報 Bug 或功能建議，
         請使用專門的 Bug 回報或功能建議模板。
+
+  - type: checkboxes
+    id: issue-scope
+    attributes:
+      label: Issue 範圍確認
+      options:
+        - label: "這是和`dev` branch 相關的 Issue，並非現行主站"
 
   - type: textarea
     id: task

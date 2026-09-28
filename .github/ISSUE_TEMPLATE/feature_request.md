@@ -7,6 +7,10 @@ projects: ["sitcon-tw/13"]
 assignees: ""
 ---
 
+## Issue 範圍確認
+
+- [ ] 這是和`dev` branch 相關的 Issue，並非現行主站
+
 ## 功能描述
 
 你希望新增什麼功能？
