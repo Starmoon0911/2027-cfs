@@ -64,3 +64,27 @@ pnpm build
 ```
 
 `pnpm fetch-data` 會更新本機 JSON 與圖片。一般建置與 PR 檢查可使用儲存庫內的資料，省略此步驟。
+
+## Cloudflare previews
+
+The `2027-cfs-preview` Worker in the SITCON account serves the `dev` branch at
+https://2027-cfs-preview.sitcon.workers.dev. Cloudflare Workers Builds builds
+other source branches as Worker Previews and posts their URLs on associated PRs.
+New branches should start from `dev` so they contain the Wrangler configuration.
+
+Build settings:
+
+- Production branch: `dev` (the persistent development preview).
+- Build command: `pnpm build:preview`.
+- Deploy command: `pnpm exec wrangler deploy`.
+- Preview command: `pnpm exec wrangler preview`.
+- Node.js: 22; pnpm version is pinned in `package.json`.
+
+The preview build fetches the current sponsorship data and images, builds Astro
+at `/`, and adds `X-Robots-Tag: noindex, nofollow` to generated responses.
+`SITE_URL` may override the default base preview origin used for absolute metadata URLs.
+The normal `pnpm build` command retains the production `/2027/cfs` base path.
+
+Cloudflare manages the GitHub integration and deployment credentials; no GitHub
+Actions deployment secret is required. Preview builds are triggered by source
+branch pushes, including branches without an open PR.
