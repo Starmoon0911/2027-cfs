@@ -56,6 +56,8 @@ const tierBenefits = tiers.map(tier => {
 });
 
 const shouldShowPlanTiers = tierBenefits.some(tb => tb.benefit !== undefined);
+const isOnlinePromotion = item.id === "12";
+const startingPrice = isOnlinePromotion ? Math.min(...item.sub.map((sub: SubItem) => Number(sub.price.replace(/[^0-9]/g, "")))) : 0;
 ---
 
 <Popup id={popupId || `plan-popup-${item.id}`} button={false} hero={false} variant="item" lang={lang}>
@@ -63,7 +65,7 @@ const shouldShowPlanTiers = tierBenefits.some(tb => tb.benefit !== undefined);
 		<button type="button" data-item-nav="prev" aria-label={lang === "en" ? "Previous item" : "上一項"}><ChevronLeft size={22} /></button>
 		<button type="button" data-item-nav="next" aria-label={lang === "en" ? "Next item" : "下一項"}><ChevronRight size={22} /></button>
 	</nav>
-	<div class="popup-content" data-item-id={item.id}>
+	<div class:list={["popup-content", { "online-promotion": isOnlinePromotion }]} data-item-id={item.id}>
 		<div class="item-image">
 			{
 				(() => {
@@ -92,10 +94,10 @@ const shouldShowPlanTiers = tierBenefits.some(tb => tb.benefit !== undefined);
 										);
 									})}
 								</div>
-								<button class="carousel-btn carousel-prev" aria-label="Previous image">
+								<button class="carousel-btn carousel-prev" aria-label={lang === "en" ? "Previous image" : "上一張圖片"}>
 									<ChevronLeft />
 								</button>
-								<button class="carousel-btn carousel-next" aria-label="Next image">
+								<button class="carousel-btn carousel-next" aria-label={lang === "en" ? "Next image" : "下一張圖片"}>
 									<ChevronRight />
 								</button>
 								<div class="carousel-description" />
@@ -145,18 +147,53 @@ const shouldShowPlanTiers = tierBenefits.some(tb => tb.benefit !== undefined);
 			}
 
 			{
+				isOnlinePromotion && (
+					<div class="promotion-intro">
+						<p class="promotion-starting-price">{lang === "en" ? `From NT$${startingPrice.toLocaleString("en-US")}` : `NT$${startingPrice.toLocaleString("en-US")} 起`}</p>
+						<p>
+							{lang === "en" ? "Reach students and developers through SITCON’s Facebook, Instagram and Telegram channels." : "透過 SITCON 的 Facebook、Instagram 與 Telegram，讓品牌接觸學生與開發者。"}
+						</p>
+					</div>
+				)
+			}
+			{
 				item.sub && item.sub.length > 0 && (
 					<div class="sub-items-section">
+						{isOnlinePromotion && (
+							<div class="promotion-options-heading">
+								<h4>{lang === "en" ? "Choose your channels" : "選擇宣傳方式"}</h4>
+								<p id={`${popupId}-selection-help`}>{lang === "en" ? "Select to save · choose multiple" : "勾選即收藏，可複選"}</p>
+							</div>
+						)}
 						{item.sub.map((subItem: SubItem, index: number) => {
 							const subItemId = `${item.id}-sub-${index}`;
 							const isSubItemSoldOut = subItem.remaining === "0";
 
 							return (
-								<div class={"sub-item"} data-sub-item-id={subItemId}>
-									<span class={"sub-item-name" + (subItem.name.length > 8 ? " long" : "")}>{subItem.name}</span>
+								<div class="sub-item" data-sub-item-id={subItemId}>
+									{isOnlinePromotion && (
+										<input
+											type="checkbox"
+											id={`${popupId}-${subItemId}`}
+											class="sub-item-choice"
+											disabled={isSubItemSoldOut}
+											data-sub-item-id={subItemId}
+											data-sub-item-name={subItem.name}
+											data-sub-item-price={subItem.price}
+											data-item-deadline={item.deadline || ""}
+											aria-describedby={`${popupId}-selection-help`}
+										/>
+									)}
+									{isOnlinePromotion ? (
+										<label class="sub-item-name" for={`${popupId}-${subItemId}`}>
+											{subItem.name}
+										</label>
+									) : (
+										<span class="sub-item-name">{subItem.name}</span>
+									)}
 									<span class="sub-item-price">{subItem.price}</span>
 									{isSubItemSoldOut && <span class="sub-item-sold-out">{t.sold_out}</span>}
-									{!isSubItemSoldOut && (
+									{!isSubItemSoldOut && !isOnlinePromotion && (
 										<button
 											type="button"
 											class="sub-add-button"
@@ -211,41 +248,236 @@ const shouldShowPlanTiers = tierBenefits.some(tb => tb.benefit !== undefined);
 				)
 			}
 
-			<div class="structured-descriptions">
-				{item.global_description && <div set:html={linkifyVenueCodes(marked.parse(item.global_description) as string)} />}
+			{
+				isOnlinePromotion && (
+					<button type="button" class="promotion-complete" data-popup-complete={popupId || `plan-popup-${item.id}`}>
+						{lang === "en" ? "Done selecting" : "完成選擇"}
+						<Check size={18} />
+					</button>
+				)
+			}
+			<details class:list={["item-more-details", { "is-collapsible": isOnlinePromotion }]} open={!isOnlinePromotion}>
+				{isOnlinePromotion && <summary>{lang === "en" ? "Promotion details and benefits" : "宣傳內容與效益"}</summary>}
+				<div class="structured-descriptions">
+					{item.global_description && <div set:html={linkifyVenueCodes(marked.parse(item.global_description) as string)} />}
 
-				{
-					item.talent_recruitment && (
-						<>
-							<h2>{t.item_categories.talent_recruitment}</h2>
-							<div set:html={linkifyVenueCodes(marked.parse(item.talent_recruitment) as string)} />
-						</>
-					)
-				}
+					{
+						item.talent_recruitment && (
+							<>
+								<h2>{t.item_categories.talent_recruitment}</h2>
+								<div set:html={linkifyVenueCodes(marked.parse(item.talent_recruitment) as string)} />
+							</>
+						)
+					}
 
-				{
-					item.brand_exposure && (
-						<>
-							<h2>{t.item_categories.brand_exposure}</h2>
-							<div set:html={linkifyVenueCodes(marked.parse(item.brand_exposure) as string)} />
-						</>
-					)
-				}
+					{
+						item.brand_exposure && (
+							<>
+								<h2>{t.item_categories.brand_exposure}</h2>
+								<div set:html={linkifyVenueCodes(marked.parse(item.brand_exposure) as string)} />
+							</>
+						)
+					}
 
-				{
-					item.product_promotion && (
-						<>
-							<h2>{t.item_categories.product_promotion}</h2>
-							<div set:html={linkifyVenueCodes(marked.parse(item.product_promotion) as string)} />
-						</>
-					)
-				}
-			</div>
+					{
+						item.product_promotion && (
+							<>
+								<h2>{t.item_categories.product_promotion}</h2>
+								<div set:html={linkifyVenueCodes(marked.parse(item.product_promotion) as string)} />
+							</>
+						)
+					}
+				</div>
+			</details>
 		</div>
 	</div>
 </Popup>
 
 <style is:global>
+	.item-more-details {
+		display: contents;
+	}
+	.online-promotion .item-details {
+		gap: 1rem;
+	}
+	.online-promotion .item-meta {
+		order: 0;
+	}
+	.online-promotion .category {
+		background: none;
+		color: var(--gray);
+		padding: 0;
+		font-size: 0.8rem;
+	}
+	.online-promotion .item-details h3 {
+		font-size: 2rem;
+		letter-spacing: -0.03em;
+	}
+	.promotion-intro {
+		color: #55555a;
+		font-size: 0.95rem;
+		line-height: 1.65;
+	}
+	.promotion-starting-price {
+		color: #14693e;
+		font-size: 1.2rem;
+		font-weight: 700;
+		margin-bottom: 0.4rem;
+	}
+	.promotion-options-heading {
+		display: flex;
+		align-items: baseline;
+		justify-content: space-between;
+		flex-wrap: wrap;
+		gap: 0.25rem 1rem;
+		margin-bottom: 0.5rem;
+	}
+	.online-promotion .promotion-options-heading h4 {
+		font-size: 0.95rem;
+		margin: 0;
+	}
+	.promotion-options-heading p {
+		font-size: 0.75rem;
+		color: var(--gray);
+	}
+	.online-promotion .sub-item {
+		grid-template-columns: 1.25rem minmax(0, 1fr) auto;
+		gap: 0.6rem;
+		padding: 0.8rem 0;
+	}
+	.online-promotion .sub-item-name {
+		grid-column: auto;
+		font-size: 0.95rem;
+		font-weight: 500;
+		cursor: pointer;
+	}
+	.online-promotion .sub-item-price {
+		font-size: 0.9rem;
+		font-family: inherit;
+		font-weight: 600;
+		white-space: nowrap;
+	}
+	.online-promotion .sub-item:has(:checked) .sub-item-name {
+		color: #14693e;
+		font-weight: 700;
+	}
+	.sub-item-choice {
+		width: 1.125rem;
+		height: 1.125rem;
+		accent-color: #14693e;
+		cursor: pointer;
+		margin: 0;
+	}
+	.sub-item-choice:focus-visible {
+		outline: 2px solid #14693e;
+		outline-offset: 4px;
+	}
+	.online-promotion .sub-item:has(:disabled) {
+		opacity: 0.55;
+	}
+	.online-promotion .sub-item:has(:disabled) label {
+		cursor: default;
+	}
+	.promotion-complete {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 0.5rem;
+		width: 100%;
+		padding: 0.8rem 1rem;
+		flex-shrink: 0;
+		background: #14693e;
+		color: white;
+		border: 0;
+		border-radius: 0.75rem;
+		font: inherit;
+		font-weight: 600;
+		cursor: pointer;
+	}
+	.promotion-complete:hover {
+		background: #0e512e;
+	}
+	.promotion-complete:focus-visible {
+		outline: 2px solid #14693e;
+		outline-offset: 3px;
+	}
+	.item-more-details.is-collapsible {
+		display: block;
+		border-top: 1px solid var(--gray-container);
+		padding-top: 0.85rem;
+	}
+	.item-more-details summary {
+		color: #55555a;
+		font-size: 0.85rem;
+		cursor: pointer;
+	}
+	.online-promotion .structured-descriptions {
+		font-size: 0.9rem;
+		color: #55555a;
+		margin-top: 1rem;
+	}
+	.online-promotion .carousel-description {
+		background: #f5f5f7e6;
+		padding: 0.4rem 0.65rem;
+		border-radius: 0.35rem;
+		font-size: 0.75rem;
+		bottom: 0.5rem;
+		right: 0.5rem;
+	}
+	.online-promotion .carousel-btn {
+		top: auto;
+		bottom: 0.35rem;
+		transform: none;
+		width: 44px;
+		height: 44px;
+		background: #f5f5f7e6;
+		color: #55555a;
+	}
+	.online-promotion .carousel-btn:hover:not(:disabled) {
+		transform: none;
+		background: #e8e8ec;
+	}
+	.online-promotion .carousel-prev {
+		left: 0.35rem;
+	}
+	.online-promotion .carousel-next {
+		left: 3.15rem;
+		right: auto;
+	}
+	@media screen and (max-width: 900px) {
+		.popup-bg.item-popup-bg .online-promotion .item-image {
+			height: clamp(8rem, 20dvh, 12rem);
+		}
+		.online-promotion .item-details {
+			gap: 0.7rem;
+		}
+		.online-promotion .item-details h3 {
+			font-size: 1.65rem;
+		}
+	}
+	@media screen and (max-width: 24rem) {
+		.online-promotion .sub-item {
+			grid-template-columns: 1.25rem minmax(0, 1fr);
+		}
+		.online-promotion .sub-item-price,
+		.online-promotion .sub-item-sold-out {
+			grid-column: 2;
+		}
+	}
+	@media print {
+		.sub-item-choice,
+		.promotion-complete,
+		.item-more-details summary {
+			display: none;
+		}
+		.item-more-details.is-collapsible > .structured-descriptions {
+			display: block !important;
+		}
+		.online-promotion .sub-item {
+			grid-template-columns: minmax(0, 1fr) auto;
+		}
+	}
+
 	.popup-content {
 		display: grid;
 		grid-template-columns: 5fr 7fr;
@@ -454,7 +686,7 @@ const shouldShowPlanTiers = tierBenefits.some(tb => tb.benefit !== undefined);
 		transition:
 			background-color 0.2s ease,
 			transform 0.2s ease;
-		z-index: 10;
+		z-index: 3;
 	}
 
 	.carousel-btn:hover:not(:disabled) {
@@ -487,7 +719,7 @@ const shouldShowPlanTiers = tierBenefits.some(tb => tb.benefit !== undefined);
 		font-size: 1rem;
 		font-weight: 500;
 		max-width: 80%;
-		z-index: 10;
+		z-index: 2;
 		backdrop-filter: blur(40px) saturate(180%);
 		-webkit-backdrop-filter: blur(40px) saturate(180%);
 		line-height: 1.4;
@@ -545,24 +777,31 @@ const shouldShowPlanTiers = tierBenefits.some(tb => tb.benefit !== undefined);
 	}
 
 	.sub-item {
-		display: flex;
+		display: grid;
+		grid-template-columns: minmax(0, 1fr) auto auto;
 		align-items: center;
-		flex-wrap: wrap;
-		gap: 1rem;
-		margin-bottom: 0.5rem;
-		font-family: FiraCode, monospace;
+		gap: 0.5rem 1rem;
+		padding: 0.75rem 0;
+	}
+
+	.sub-item + .sub-item {
+		border-top: 1px solid var(--gray-container);
 	}
 
 	.sub-item-name {
 		font-size: 1rem;
 		font-weight: 700;
 		color: var(--black);
-		flex: 1;
+		min-width: 0;
+		line-height: 1.5;
+		overflow-wrap: anywhere;
 	}
 
 	.sub-item-price {
-		color: rgba(0, 0, 0, 0.6);
+		color: var(--black);
 		font-size: 1.1rem;
+		font-weight: 600;
+		font-family: FiraCode, monospace;
 	}
 
 	.sub-item-sold-out {
@@ -575,7 +814,7 @@ const shouldShowPlanTiers = tierBenefits.some(tb => tb.benefit !== undefined);
 	}
 
 	.sub-add-button {
-		width: 2rem;
+		width: 2.75rem;
 		aspect-ratio: 1 / 1;
 		border-radius: 50%;
 		background-color: var(--black);
@@ -616,6 +855,11 @@ const shouldShowPlanTiers = tierBenefits.some(tb => tb.benefit !== undefined);
 
 	.sub-add-button:hover {
 		transform: scale(1.1);
+	}
+
+	.sub-add-button:focus-visible {
+		outline: 2px solid #14693e;
+		outline-offset: 3px;
 	}
 
 	.sub-add-button.added {
@@ -675,9 +919,12 @@ const shouldShowPlanTiers = tierBenefits.some(tb => tb.benefit !== undefined);
 		}
 	}
 	@media screen and (max-width: 40rem) {
-		.sub-item-name.long {
-			flex: 1 1 100%;
-			margin-bottom: 0.5rem;
+		.sub-item {
+			grid-template-columns: minmax(0, 1fr) auto;
+		}
+
+		.sub-item-name {
+			grid-column: 1 / -1;
 		}
 	}
 
@@ -868,14 +1115,14 @@ const shouldShowPlanTiers = tierBenefits.some(tb => tb.benefit !== undefined);
 		// Sync sub-item button state with localStorage and deadline
 		function syncSubItemButton(subItemId: string) {
 			try {
-				const button = document.querySelector(`.sub-add-button[data-sub-item-id="${subItemId}"]`) as HTMLElement;
+				const button = document.querySelector(`.sub-add-button[data-sub-item-id="${subItemId}"], .sub-item-choice[data-sub-item-id="${subItemId}"]`) as HTMLButtonElement | HTMLInputElement;
 				if (!button) return;
 
 				// Check deadline
 				const deadline = button.getAttribute("data-item-deadline") || "";
 				const expired = isDeadlinePassed(deadline);
 
-				if (expired) {
+				if (expired || button.closest(".sub-item")?.querySelector(".sub-item-sold-out")) {
 					button.setAttribute("disabled", "true");
 					button.classList.add("disabled");
 				} else {
@@ -884,6 +1131,7 @@ const shouldShowPlanTiers = tierBenefits.some(tb => tb.benefit !== undefined);
 				}
 
 				const isAdded = isItemInterested(subItemId);
+				if (button instanceof HTMLInputElement) button.checked = isAdded;
 				if (isAdded) {
 					button.classList.add("added");
 				} else {
@@ -895,21 +1143,18 @@ const shouldShowPlanTiers = tierBenefits.some(tb => tb.benefit !== undefined);
 		}
 
 		// Handle sub-item add button clicks
-		document.addEventListener("click", function (e) {
+		function handleSubItemSelection(e: Event) {
 			const target = e.target as Element;
-
-			// Sub-item add button
-			if (target.closest(".sub-add-button")) {
-				e.preventDefault();
+			const btn = target.closest(".sub-add-button, .sub-item-choice") as HTMLButtonElement | HTMLInputElement | null;
+			if (btn) {
+				if (btn instanceof HTMLButtonElement) e.preventDefault();
 				e.stopPropagation();
-
-				const btn = target.closest(".sub-add-button") as HTMLButtonElement;
 				const subItemId = btn.getAttribute("data-sub-item-id");
 				if (!subItemId) return;
 
 				// Check if deadline has passed
 				const deadline = btn.getAttribute("data-item-deadline") || "";
-				if (isDeadlinePassed(deadline)) {
+				if (btn.disabled || isDeadlinePassed(deadline)) {
 					return; // Don't allow adding expired items
 				}
 
@@ -945,12 +1190,25 @@ const shouldShowPlanTiers = tierBenefits.some(tb => tb.benefit !== undefined);
 
 				syncSubItemButton(subItemId);
 			}
+		}
+		document.addEventListener("click", e => {
+			if ((e.target as Element).closest(".sub-add-button")) handleSubItemSelection(e);
+		});
+		document.addEventListener("change", e => {
+			if ((e.target as Element).matches(".sub-item-choice")) handleSubItemSelection(e);
+		});
+		document.querySelectorAll<HTMLButtonElement>("[data-popup-complete]").forEach(button => {
+			button.addEventListener("click", event => {
+				event.stopPropagation();
+				window.popupCtrl(button.dataset.popupComplete, "close");
+				document.dispatchEvent(new CustomEvent("interestSelectionCompleted"));
+			});
 		});
 
 		// Listen to itemsChange events from localStorage
 		window.addEventListener("itemsChange", function () {
 			// Sync all sub-item buttons
-			document.querySelectorAll(".sub-add-button").forEach(button => {
+			document.querySelectorAll(".sub-add-button, .sub-item-choice").forEach(button => {
 				const subItemId = button.getAttribute("data-sub-item-id");
 				if (subItemId) {
 					syncSubItemButton(subItemId);
@@ -959,7 +1217,7 @@ const shouldShowPlanTiers = tierBenefits.some(tb => tb.benefit !== undefined);
 		});
 
 		// Initial sync for sub-items on page load
-		document.querySelectorAll(".sub-add-button").forEach(button => {
+		document.querySelectorAll(".sub-add-button, .sub-item-choice").forEach(button => {
 			const subItemId = button.getAttribute("data-sub-item-id");
 			if (subItemId) {
 				syncSubItemButton(subItemId);
