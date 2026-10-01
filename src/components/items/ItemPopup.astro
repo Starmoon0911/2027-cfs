@@ -754,6 +754,9 @@ const shouldShowPlanTiers = tierBenefits.some(tb => tb.benefit !== undefined);
 		.popup-bg.item-popup-bg .item-image {
 			height: clamp(10rem, 28dvh, 16rem);
 		}
+		.popup-bg.item-popup-bg .item-image img {
+			object-fit: cover;
+		}
 		.item-details {
 			height: auto;
 			overflow: visible;
