@@ -53,22 +53,36 @@ const news: News[] = [
 	<h2>SITCON 2026 {t.coverage_title || "媒體報導"}</h2>
 	<div class="news-content lenis-scroll" role="region" aria-label={t.coverage_title || "媒體報導"} tabindex="0">
 		<a target="_blank" rel="noopener noreferrer" href="https://www.president.gov.tw/News/39930">
-			<span class="news-source">總統府</span><img src={president2026.src} alt="總統府 · SITCON 2026" class="news-img" loading="lazy" />
+			<span class="news-source">總統府</span><img src={president2026.src} width={president2026.width} height={president2026.height} alt="總統府 · SITCON 2026" class="news-img" loading="lazy" />
 		</a>
 		<a target="_blank" rel="noopener noreferrer" href="https://www.cna.com.tw/news/aipl/202603280032.aspx">
-			<span class="news-source">中央社 CNA</span><img src={cna2026.src} alt="中央社 · SITCON 2026" class="news-img" loading="lazy" />
+			<span class="news-source">中央社 CNA</span><img src={cna2026.src} width={cna2026.width} height={cna2026.height} alt="中央社 · SITCON 2026" class="news-img" loading="lazy" />
 		</a>
 		<a target="_blank" rel="noopener noreferrer" href="https://money.udn.com/money/story/7307/9408273">
-			<span class="news-source">經濟日報</span><img src={udn2026.src} alt="經濟日報 · SITCON 2026" class="news-img" loading="lazy" />
+			<span class="news-source">經濟日報</span><img src={udn2026.src} width={udn2026.width} height={udn2026.height} alt="經濟日報 · SITCON 2026" class="news-img" loading="lazy" />
 		</a>
 		<a target="_blank" rel="noopener noreferrer" href="https://ocacnews.net/article/423192">
-			<span class="news-source">僑務電子報</span><img src={ocac2026.src} alt="僑務電子報 · SITCON 2026" class="news-img" loading="lazy" />
+			<span class="news-source">僑務電子報</span><img src={ocac2026.src} width={ocac2026.width} height={ocac2026.height} alt="僑務電子報 · SITCON 2026" class="news-img" loading="lazy" />
 		</a>
 		<a target="_blank" rel="noopener noreferrer" href="https://techblog.lycorp.co.jp/zh-hant/sitcon2026-sponsorship">
-			<span class="news-source">LY Corporation Tech Blog</span><img src={line2026.src} alt="LY Corporation Tech Blog · SITCON 2026" class="news-img" loading="lazy" />
+			<span class="news-source">LY Corporation Tech Blog</span><img
+				src={line2026.src}
+				width={line2026.width}
+				height={line2026.height}
+				alt="LY Corporation Tech Blog · SITCON 2026"
+				class="news-img"
+				loading="lazy"
+			/>
 		</a>
 		<a target="_blank" rel="noopener noreferrer" href="https://www.youtube.com/watch?v=zplk0zALtOM">
-			<span class="news-source">年代 MUCH｜台灣新驕點</span><img src={muchtv2026.src} alt="年代新聞 · SITCON 2026" class="news-img" loading="lazy" />
+			<span class="news-source">年代 MUCH｜台灣新驕點</span><img
+				src={muchtv2026.src}
+				width={muchtv2026.width}
+				height={muchtv2026.height}
+				alt="年代新聞 · SITCON 2026"
+				class="news-img"
+				loading="lazy"
+			/>
 		</a>
 	</div>
 	<Popup hero={false} btnText={t.title} id="news-popup">
@@ -155,7 +169,7 @@ const news: News[] = [
 			transform: none;
 		}
 		.news-img {
-			height: auto;
+			height: 22rem;
 		}
 	}
 
