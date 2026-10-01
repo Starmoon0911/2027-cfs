@@ -1,3 +1,5 @@
+import { getItemFormat } from "./item-filters.ts";
+
 /**
  * Utility functions for loading items data from individual markdown folders
  */
@@ -55,6 +57,7 @@ export interface ItemData {
 	remaining: string;
 	unit: string;
 	type: string;
+	format: string;
 	global_description: string;
 	talent_recruitment: string;
 	brand_exposure: string;
@@ -97,7 +100,7 @@ const typeTranslations: Record<string, { zh: string; en: string }> = {
 	}
 };
 
-function translateType(type: string, locale: string): string {
+export function translateType(type: string, locale: string): string {
 	const translation = typeTranslations[type];
 	if (!translation) {
 		return type; // Fallback to original if no translation found
@@ -126,6 +129,7 @@ function extractLocalizedData(rawData: ItemDataRaw, locale: string, id: string):
 		remaining: rawData.remaining,
 		unit: rawData.unit,
 		type: translateType(rawData.type, locale),
+		format: getItemFormat(id, rawData.type),
 		global_description: suffix === "_zh" ? rawData.global_description_zh : rawData.global_description_en,
 		talent_recruitment: suffix === "_zh" ? rawData.talent_recruitment_zh : rawData.talent_recruitment_en,
 		brand_exposure: suffix === "_zh" ? rawData.brand_exposure_zh : rawData.brand_exposure_en,

@@ -180,8 +180,7 @@
 		}
 	},
 	"items": {
-		"title": "Save Items of Interest",
-		"subtitle": "Tap + to save items you are interested in. Prices are shown directly; items already included in a plan are marked \"Plan Included Item\".",
+		"title": "Explore Partnership Opportunities",
 		"days": "days",
 		"hours": "hours",
 		"minutes": "minutes",
@@ -340,6 +339,16 @@
 			"time": "times",
 			"type": "types",
 			"件": "copies"
+		},
+		"filters": {
+			"formatQuestion": "Which exposure formats do you prefer?",
+			"question": "What would you like to achieve?",
+			"purpose": "Business goals",
+			"format": "Formats",
+			"hint": "Select multiple options. Match any option within each row and both rows together.",
+			"count": "{count} matching items",
+			"empty": "No items match these filters. Try removing some selections.",
+			"clear": "Clear all filters"
 		},
 		"item_categories": {
 			"all": "All",

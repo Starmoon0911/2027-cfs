@@ -1,8 +1,9 @@
 ---
-import { X, Heart } from "@lucide/astro";
-import { loadItemsData } from "../../utils/items-loader";
+import { X, Heart, Plus, Check, Circle, CircleDot } from "@lucide/astro";
+import { loadItemsData, translateType } from "../../utils/items-loader";
 import { isInactive } from "../../utils/item-status";
-import shopConfig from "@data/shop_config.json";
+import { purposes } from "../../utils/item-filters";
+import "../../assets/item-filters.css";
 import ItemCard from "@components/items/ItemCard.astro";
 
 const { t, lang } = Astro.props;
@@ -22,27 +23,75 @@ const items = itemsUnsorted.sort((a, b) => {
 	const orderB = b.order || 0;
 	return orderA - orderB;
 });
-const config = shopConfig;
+const formatOrder = ["現場實體曝光", "數位媒體曝光", "紀念品配件曝光", "獨家議程", "更多曝光方式"];
+const formats = [...new Set(items.map(item => item.format))].sort((a, b) => {
+	const rank = (format: string) => {
+		const index = formatOrder.indexOf(format);
+		return index === -1 ? formatOrder.length : index;
+	};
+	return rank(a) - rank(b);
+});
+const groups = [
+	{ id: "purpose", label: t.filters.purpose, options: purposes.map(id => ({ id, label: t.item_categories[id] })) },
+	{ id: "format", label: t.filters.format, options: formats.map(id => ({ id, label: translateType(id, lang).replaceAll("曝光", "") })) }
+];
 ---
 
 <section id="items">
 	<div class="container">
 		<h2>{t.title}</h2>
-		<p class="subtitle">{t.subtitle}</p>
 
-		<div class="tabs">
+		<div class="filters">
+			<p class="filter-question" style="text-align: center; font-size: 1.25rem; font-weight: 600;">{t.filters.question}</p>
 			{
-				config.categories.map((category: string, index: number) => (
-					<button class={`tab ${index === 0 ? "active" : ""}`} data-category={category}>
-						{t.item_categories[category]}
-					</button>
+				groups.map(group => (
+					<fieldset class="filter-row" aria-label={group.label}>
+						{group.id === "format" && (
+							<p class="filter-question" style="text-align: center; font-size: 1.25rem; font-weight: 600;">
+								{t.filters.formatQuestion}
+							</p>
+						)}
+						<div class="filter-options">
+							{group.options.map(option => (
+								<button type="button" class="filter-toggle" data-filter-group={group.id} data-filter-value={option.id} data-filter-tone={group.id} aria-pressed="false" aria-controls="item-catalog">
+									{group.id === "purpose" ? (
+										<span class="filter-radio-indicator" aria-hidden="true">
+											<span class="filter-unselected-icon">
+												<Circle size={16} />
+											</span>
+											<span class="filter-selected-icon">
+												<CircleDot size={16} />
+											</span>
+										</span>
+									) : (
+										<span class="filter-multi-indicator" aria-hidden="true">
+											<span class="filter-unselected-icon">
+												<Plus size={16} />
+											</span>
+											<span class="filter-selected-icon">
+												<Check size={16} />
+											</span>
+										</span>
+									)}
+									<span>{option.label}</span>
+								</button>
+							))}
+						</div>
+					</fieldset>
 				))
 			}
+		</div>
+		<p class="filter-results" style="visibility: hidden;" role="status" aria-live="polite" data-filter-count data-template={t.filters.count}>
+			{t.filters.count.replace("{count}", String(items.length))}
+		</p>
+		<div class="filter-empty" hidden>
+			<p>{t.filters.empty}</p>
+			<button type="button" class="filter-toggle" data-clear-filters>{t.filters.clear}</button>
 		</div>
 
 		<div class="cards-container fade-active" id="item-catalog">
 			<div class="cards-grid">
-				{items.map(card => <ItemCard t={t} card={card} lang={lang} shopConfig={config} selectedCategory="all" />)}
+				{items.map(card => <ItemCard t={t} card={card} lang={lang} />)}
 			</div>
 			<div class="fade-overlay"></div>
 		</div>
@@ -99,38 +148,39 @@ const config = shopConfig;
 		padding: 0 2rem;
 	}
 
-	.subtitle {
-		color: var(--black);
-		text-align: center;
-		margin-bottom: 3rem;
-		font-size: 1.1rem;
+	.filters {
+		margin: 0 0 1.5rem;
 	}
-
-	.tabs {
+	.filter-question {
+		text-align: center;
+		font-size: 1.25rem;
+		font-weight: 600;
+		color: var(--black);
+		margin: 0 0 0.75rem;
+	}
+	.filter-row {
+		border: 0;
+		padding: 0;
+		margin: 0 0 1rem;
+		min-width: 0;
+	}
+	.filter-options {
 		display: flex;
 		justify-content: center;
-		gap: 0;
-		margin-bottom: 3rem;
+		flex-wrap: wrap;
+		gap: 0.5rem;
 	}
-
-	.tab {
-		padding: 0.75rem 1.5rem;
-		border: none;
-		background-color: var(--white);
+	.filter-results {
+		font-size: 0.9rem;
 		color: var(--black);
-		cursor: pointer;
-		border-radius: 25px;
-		margin: 0 0.25rem;
-		font-size: 1rem;
-		transition: background-color 0.3s ease;
 	}
-
-	.tab.active {
-		background-color: var(--gray-container);
+	.filter-results {
+		text-align: center;
+		margin-bottom: 1rem;
 	}
-
-	.tab:hover {
-		background-color: var(--gray-container);
+	.filter-empty {
+		text-align: center;
+		padding: 2rem 1rem;
 	}
 
 	.cards-container {
@@ -442,23 +492,6 @@ const config = shopConfig;
 
 		.container {
 			padding: 0 1rem;
-		}
-
-		.tabs {
-			display: grid;
-			grid-template-columns: repeat(2, minmax(0, 1fr));
-			grid-auto-rows: 1fr;
-			gap: 0.5rem;
-			max-width: 25rem;
-			margin-inline: auto;
-		}
-
-		.tab {
-			margin: 0;
-			min-width: 0;
-			min-height: 44px;
-			padding: 0.5rem 0.75rem;
-			font-size: 0.9rem;
 		}
 
 		.interest-button {

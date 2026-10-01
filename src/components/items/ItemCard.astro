@@ -1,6 +1,7 @@
 ---
 import { Plus, Check } from "@lucide/astro";
 import { getItemDescription } from "../../utils/items-loader";
+import "../../assets/item-filters.css";
 import Stone from "@assets/img/小石.svg";
 import { marked } from "marked";
 import { isItemInAnyPlan } from "../../utils/plan-helper";
@@ -21,7 +22,7 @@ if (!displayPrice && isItemInAnyPlan(card.id)) {
 // Get current description based on selected category
 const currentDescription = getItemDescription(card, selectedCategory);
 
-// Prepare description data for client-side updates with all variants
+// Keep purpose-specific copy available while the purpose controls reorder items.
 const descriptionData = JSON.stringify({
 	all: card.global_description,
 	talent_recruitment: card.talent_recruitment,
@@ -56,6 +57,7 @@ const isSoldOut = card.remaining === "0" || (hasSubItems && card.sub.every((sub:
 <div
 	class={`card ${card.quantity === "打包專屬" ? "package-exclusive-item" : ""} ${isSoldOut ? "sold-out" : ""}`}
 	data-card-id={card.id}
+	data-format={card.format}
 	data-descriptions={descriptionData}
 	data-order={card.order}
 	data-talent-recruitment-order={card.talent_recruitment_order}
@@ -125,6 +127,10 @@ const isSoldOut = card.remaining === "0" || (hasSubItems && card.sub.every((sub:
 		background-color: var(--white);
 		border-radius: 0.75rem;
 		overflow: hidden;
+	}
+
+	.card[hidden] {
+		display: none;
 	}
 
 	.card-image {
