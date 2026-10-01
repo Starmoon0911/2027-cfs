@@ -7,12 +7,12 @@ interface Props {
 	image?: string;
 	price?: string;
 	deadline?: string;
-	hasSubItems?: boolean;
+	popupId?: string;
 	lang?: string;
 	class?: string;
 }
 
-const { id, title, image = "", price = "", deadline = "", hasSubItems = false, lang = "zh-Hant", class: className } = Astro.props;
+const { id, title, image = "", price = "", deadline = "", popupId, lang = "zh-Hant", class: className } = Astro.props;
 ---
 
 <button
@@ -23,7 +23,7 @@ const { id, title, image = "", price = "", deadline = "", hasSubItems = false, l
 	data-item-image={image}
 	data-item-price={price}
 	data-item-deadline={deadline}
-	data-has-sub-items={hasSubItems ? "true" : "false"}
+	data-popup-id={popupId}
 	aria-label={lang === "en" ? `Save ${title}` : `收藏${title}`}
 	aria-pressed="false"
 >

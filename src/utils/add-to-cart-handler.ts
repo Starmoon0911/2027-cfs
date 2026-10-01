@@ -26,17 +26,15 @@ export function handleAddButtonClick(button: HTMLElement, event: Event): void {
 		return; // Don't allow adding expired items
 	}
 
-	// Check if this item has sub-items
-	const hasSubItems = card?.getAttribute("data-has-sub-items") === "true" || button.getAttribute("data-has-sub-items") === "true";
+	const popupId = button.getAttribute("data-popup-id");
 
-	if (hasSubItems) {
-		// Open the popup for items with sub-items
-		const popupId = `item-popup-${id}`;
+	if (popupId) {
+		// Catalog controls always open the same option selector.
 		if (typeof window.popupCtrl === "function") {
 			window.popupCtrl(popupId, "open");
 		}
 	} else {
-		// Toggle interested state for items without sub-items
+		// Every option uses the same saved-item toggle, regardless of option count.
 		const itemTitle = button.getAttribute("data-item-title") || button.getAttribute("data-item-name") || "";
 		const itemImage = button.getAttribute("data-item-image") || "";
 		const itemPrice = button.getAttribute("data-item-price") || "";

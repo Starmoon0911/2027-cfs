@@ -8,20 +8,14 @@ import planData from "@data/plan.json";
 import { marked } from "marked";
 import { linkifyVenueCodes } from "../../utils/venue-linkify.ts";
 
-import type { SubItem } from "../../utils/items-loader";
+import { getItemOptions, type SubItem } from "../../utils/items-loader";
 
 const { item, t, lang, popupId } = Astro.props;
 
-// Calculate total remaining for items with sub-items
-const hasSubItems = item.sub && item.sub.length > 0;
-const displayPrice = item.price || (isItemInAnyPlan(item.id) ? (lang === "en" ? "Plan Included Item" : "方案包含項目") : "");
-const totalRemaining = hasSubItems
-	? item.sub.reduce((sum: number, sub: SubItem) => {
-			const remaining = sub.remaining === "" ? null : parseInt(sub.remaining, 10);
-			return sum + (remaining === null || isNaN(remaining) ? 0 : remaining);
-		}, 0)
-	: parseInt(item.remaining, 10) || 0;
-const isSoldOut = item.remaining === "0" || (hasSubItems && item.sub.every((sub: SubItem) => sub.remaining === "0") && item.sub.length > 0);
+const options = getItemOptions(item);
+const planPrice = isItemInAnyPlan(item.id) ? (lang === "en" ? "Plan Included Item" : "方案包含項目") : "";
+const totalRemaining = options.reduce((sum, option) => sum + (parseInt(option.remaining, 10) || 0), 0);
+const isSoldOut = item.remaining === "0" || options.every(option => option.remaining === "0");
 const tiers = [
 	{
 		id: "navigator",
@@ -140,39 +134,19 @@ const shouldShowPlanTiers = tierBenefits.some(tb => tb.benefit !== undefined);
 			<div class="title-row">
 				<h3>{item.name}</h3>
 			</div>
-			{
-				!hasSubItems && (
-					<div class="item-selection-row">
-						<span class="item-selection-label">{lang === "en" ? "Save this item" : "收藏此品項"}</span>
-						<span class="item-option-line" aria-hidden="true" />
-						<ItemPrice price={displayPrice} />
-						{!isSoldOut && <ItemAddButton id={item.id} title={item.name} image={item.image || ""} price={item.price || ""} deadline={item.deadline || ""} lang={lang} />}
-					</div>
-				)
-			}
-
-			{
-				hasSubItems && (
-					<div class="sub-items-section">
-						{item.sub.map((subItem: SubItem, index: number) => {
-							const subItemId = `${item.id}-sub-${index}`;
-							const isSubItemSoldOut = subItem.remaining === "0";
-
-							return (
-								<div class="sub-item" data-sub-item-id={subItemId}>
-									<span class="sub-item-name">{subItem.name}</span>
-									<span class="item-option-line" aria-hidden="true" />
-									<ItemPrice price={subItem.price} class="sub-item-price" />
-									{isSubItemSoldOut && <span class="sub-item-sold-out">{t.sold_out}</span>}
-									{!isSubItemSoldOut && (
-										<ItemAddButton id={subItemId} title={subItem.name} image={item.image || ""} price={subItem.price} deadline={item.deadline || ""} lang={lang} class="sub-add-button" />
-									)}
-								</div>
-							);
-						})}
-					</div>
-				)
-			}
+			<div class="sub-items-section">
+				{
+					options.map(option => (
+						<div class="sub-item" data-option-id={option.id}>
+							<span class="sub-item-name">{option.name}</span>
+							<span class="item-option-line" aria-hidden="true" />
+							<ItemPrice price={option.price || planPrice} class="sub-item-price" />
+							{option.remaining === "0" && <span class="sub-item-sold-out">{t.sold_out}</span>}
+							{option.remaining !== "0" && <ItemAddButton id={option.id} title={option.name} image={item.image || ""} price={option.price} deadline={item.deadline || ""} lang={lang} />}
+						</div>
+					))
+				}
+			</div>
 
 			{
 				shouldShowPlanTiers && (
@@ -523,7 +497,6 @@ const shouldShowPlanTiers = tierBenefits.some(tb => tb.benefit !== undefined);
 		height: 24px;
 	}
 
-	.item-selection-row,
 	.sub-item {
 		display: grid;
 		grid-template-columns: minmax(0, auto) minmax(1rem, 1fr) auto auto;
@@ -532,7 +505,6 @@ const shouldShowPlanTiers = tierBenefits.some(tb => tb.benefit !== undefined);
 		padding: 0.5rem 0;
 	}
 
-	.item-selection-label,
 	.sub-item-name {
 		font-size: 1rem;
 		font-weight: 700;
@@ -542,12 +514,7 @@ const shouldShowPlanTiers = tierBenefits.some(tb => tb.benefit !== undefined);
 		overflow-wrap: anywhere;
 	}
 
-	.item-selection-label {
-		font-weight: 400;
-	}
-
 	@media screen and (min-width: 901px) {
-		.item-selection-label,
 		.sub-item-name {
 			font-size: 1.25rem;
 		}
@@ -562,7 +529,6 @@ const shouldShowPlanTiers = tierBenefits.some(tb => tb.benefit !== undefined);
 		opacity: 0.65;
 	}
 
-	.item-selection-row .sponsorship-price,
 	.sub-item .sponsorship-price {
 		text-align: right;
 	}
@@ -644,7 +610,6 @@ const shouldShowPlanTiers = tierBenefits.some(tb => tb.benefit !== undefined);
 		.tier-name,
 		.tier-arrow,
 		.tier-value,
-		.item-selection-label,
 		.sub-item-name {
 			font-size: 12pt;
 		}

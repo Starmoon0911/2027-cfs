@@ -1,7 +1,7 @@
 ---
 import ItemAddButton from "./ItemAddButton.astro";
 import ItemPrice from "./ItemPrice.astro";
-import { getItemDescription } from "../../utils/items-loader";
+import { getItemDescription, getItemOptions } from "../../utils/items-loader";
 import Stone from "@assets/img/小石.svg";
 import { marked } from "marked";
 import { isItemInAnyPlan } from "../../utils/plan-helper";
@@ -30,28 +30,9 @@ const descriptionData = JSON.stringify({
 	product_promotion: card.product_promotion
 });
 
-// Prepare sub-items data for remaining calculation
-const hasSubItems = card.sub && card.sub.length > 0;
-const subItemsData = hasSubItems
-	? JSON.stringify(
-			card.sub.map((sub: any, index: number) => ({
-				id: `${card.id}-sub-${index}`,
-				remaining: sub.remaining || "0"
-			}))
-		)
-	: "[]";
-
-// Calculate total remaining for items with sub-items
-const totalRemaining = hasSubItems
-	? card.sub.reduce((sum: number, sub: any) => {
-			const remaining = sub.remaining === "" ? null : parseInt(sub.remaining, 10);
-			return sum + (remaining === null || isNaN(remaining) ? 0 : remaining);
-		}, 0)
-	: parseInt(card.remaining, 10) || 0;
-
-// Check if item is sold out - only when remaining is explicitly "0"
-// Empty string ("") or null should NOT be treated as sold out
-const isSoldOut = card.remaining === "0" || (hasSubItems && card.sub.every((sub: any) => sub.remaining === "0") && card.sub.length > 0);
+const options = getItemOptions(card);
+const totalRemaining = options.reduce((sum, option) => sum + (parseInt(option.remaining, 10) || 0), 0);
+const isSoldOut = card.remaining === "0" || options.every(option => option.remaining === "0");
 ---
 
 <div
@@ -62,8 +43,6 @@ const isSoldOut = card.remaining === "0" || (hasSubItems && card.sub.every((sub:
 	data-talent-recruitment-order={card.talent_recruitment_order}
 	data-brand-exposure-order={card.brand_exposure_order}
 	data-product-promotion-order={card.product_promotion_order}
-	data-has-sub-items={hasSubItems ? "true" : "false"}
-	data-sub-items={subItemsData}
 	data-is-sold-out={isSoldOut ? "true" : "false"}
 	data-deadline={card.deadline || ""}
 >
@@ -94,7 +73,7 @@ const isSoldOut = card.remaining === "0" || (hasSubItems && card.sub.every((sub:
 	<div class="card-content">
 		<div class="title-row">
 			<h3>{card.name}</h3>
-			{!isSoldOut && <ItemAddButton id={card.id} title={card.name} image={card.image || ""} price={card.price || ""} deadline={card.deadline || ""} hasSubItems={hasSubItems} lang={lang} />}
+			{!isSoldOut && <ItemAddButton id={card.id} title={card.name} image={card.image || ""} price={card.price || ""} deadline={card.deadline || ""} popupId={`item-popup-${card.id}`} lang={lang} />}
 		</div>
 		{
 			displayPrice && (
