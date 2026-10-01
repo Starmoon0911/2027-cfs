@@ -755,6 +755,30 @@ const shouldShowPlanTiers = tierBenefits.some(tb => tb.benefit !== undefined);
 
 <script>
 	document.addEventListener("DOMContentLoaded", function () {
+		// Reclaim unused space after wrapping so the dotted guide follows the text.
+		const optionRows = document.querySelectorAll<HTMLElement>(".sub-item");
+		const rowWidths = new WeakMap<Element, number>();
+		function fitOptionName(row: HTMLElement) {
+			const name = row.querySelector<HTMLElement>(".sub-item-name");
+			if (!name || row.getBoundingClientRect().width === 0) return;
+			name.style.width = "";
+			const range = document.createRange();
+			range.selectNodeContents(name);
+			const lines = Array.from(range.getClientRects());
+			if (lines.length > 0) {
+				name.style.width = `${Math.ceil(Math.max(...lines.map(line => line.width)))}px`;
+			}
+		}
+		const optionObserver = new ResizeObserver(entries => {
+			entries.forEach(({ target, contentRect }) => {
+				if (rowWidths.get(target) === contentRect.width) return;
+				rowWidths.set(target, contentRect.width);
+				fitOptionName(target as HTMLElement);
+			});
+		});
+		optionRows.forEach(row => optionObserver.observe(row));
+		document.fonts.ready.then(() => optionRows.forEach(fitOptionName));
+
 		// Carousel functionality
 		function initCarousels() {
 			document.querySelectorAll(".image-carousel").forEach(carousel => {
