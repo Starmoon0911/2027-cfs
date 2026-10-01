@@ -3,7 +3,7 @@ const { t, lang } = Astro.props;
 import { Container, Check } from "@lucide/astro";
 import planData from "@data/plan.json";
 import { loadItemsData } from "../../utils/items-loader";
-import { getBenefitLocalizedName } from "../../utils/plan-helper";
+import { getBenefitLocalizedName, resolveBenefitItem } from "../../utils/plan-helper";
 const itemsData = await loadItemsData(lang);
 
 // Create a lookup map for quick item access by ID
@@ -11,7 +11,7 @@ const itemsMap = new Map(itemsData.map(item => [item.id, item]));
 
 // Helper function to get earliest deadline from plan benefits
 const getEarliestDeadline = (benefits: any[]) => {
-	const deadlines = benefits.map(b => (b.item_id ? itemsMap.get(b.item_id)?.deadline : null)).filter((d): d is string => d !== null && d !== undefined && d !== "");
+	const deadlines = benefits.map(b => resolveBenefitItem(b)?.itemData.deadline).filter((d): d is string => d !== null && d !== undefined && d !== "");
 
 	if (deadlines.length === 0) return "";
 
@@ -51,68 +51,28 @@ const tiers = [
 	}
 ];
 
-// Create rows from benefits (assuming all tiers have the same items in same order)
-const maxBenefits = Math.max(planData.navigator.benefits.length, planData.deep_cultivation.benefits.length, planData.visionary.benefits.length, planData.new_sprout.benefits.length);
-
-// Helper function to generate fallback row IDs
-const getFallbackRowId = (index: number) => `row-${index}`;
-
-const rows: {
-	id: string;
-	name: string;
-	isAvailable: boolean;
-	values: { itemId: string; quantity: string; name: string }[];
-}[] = [];
-for (let i = 0; i < maxBenefits; i++) {
-	const navBenefit = planData.navigator.benefits[i];
-	const deepBenefit = planData.deep_cultivation.benefits[i];
-	const visBenefit = planData.visionary.benefits[i];
-	const sproutBenefit = planData.new_sprout.benefits[i];
-
-	// Use the first available item_id as the row id
-	const rowId = navBenefit?.item_id || deepBenefit?.item_id || visBenefit?.item_id || sproutBenefit?.item_id || getFallbackRowId(i);
-
-	// Check if the item exists in the items data
-	const itemExists = rowId !== getFallbackRowId(i) && itemsMap.has(rowId);
-
-	// Check if any tier has a non-empty quantity AND the item exists in items data
-	const hasAnyAvailableItem =
-		itemExists &&
-		!!(
-			(navBenefit?.quantity && navBenefit.quantity !== "") ||
-			(deepBenefit?.quantity && deepBenefit.quantity !== "") ||
-			(visBenefit?.quantity && visBenefit.quantity !== "") ||
-			(sproutBenefit?.quantity && sproutBenefit.quantity !== "")
-		);
-
-	// Get localized names for each benefit
-	const navName = navBenefit ? getBenefitLocalizedName(navBenefit, lang) : "";
-	const deepName = deepBenefit ? getBenefitLocalizedName(deepBenefit, lang) : "";
-	const visName = visBenefit ? getBenefitLocalizedName(visBenefit, lang) : "";
-	const sproutName = sproutBenefit ? getBenefitLocalizedName(sproutBenefit, lang) : "";
-
-	rows.push({
-		id: rowId,
-		name: navName || deepName || visName || sproutName || "",
-		isAvailable: hasAnyAvailableItem,
-		values: [
-			{ itemId: navBenefit?.item_id || "", quantity: navBenefit?.quantity || "", name: navName },
-			{ itemId: deepBenefit?.item_id || "", quantity: deepBenefit?.quantity || "", name: deepName },
-			{ itemId: visBenefit?.item_id || "", quantity: visBenefit?.quantity || "", name: visName },
-			{ itemId: sproutBenefit?.item_id || "", quantity: sproutBenefit?.quantity || "", name: sproutName }
-		]
+// All tiers share benefit order; use the same benefit resolution for display and interaction.
+const tierPlans = tiers.map(tier => planData[tier.id as keyof typeof planData]);
+const maxBenefits = Math.max(...tierPlans.map(tier => tier.benefits.length));
+const rows = Array.from({ length: maxBenefits }, (_, index) => {
+	const values = tierPlans.map(tier => {
+		const benefit = tier.benefits[index];
+		const resolved = benefit ? resolveBenefitItem(benefit) : null;
+		const itemId = resolved?.itemId || "";
+		return {
+			itemId,
+			popupItemId: itemId.split("-sub-")[0],
+			quantity: benefit?.quantity || "",
+			name: benefit ? getBenefitLocalizedName(benefit, lang) : ""
+		};
 	});
-}
-
-// Collect all unique item IDs from plan.json benefits
-const uniqueItemIds = new Set<string>();
-
-[planData.navigator, planData.deep_cultivation, planData.visionary, planData.new_sprout].forEach(tier => {
-	tier.benefits.forEach(benefit => {
-		if (benefit.item_id && benefit.item_id !== "") {
-			uniqueItemIds.add(benefit.item_id);
-		}
-	});
+	const availableValue = values.find(value => value.popupItemId && value.quantity);
+	return {
+		id: values.find(value => value.itemId)?.itemId || `row-${index}`,
+		name: values.find(value => value.name)?.name || "",
+		popupItemId: availableValue?.popupItemId,
+		values
+	};
 });
 ---
 
@@ -143,12 +103,12 @@ const uniqueItemIds = new Set<string>();
 			<div class="plans-table lenis-scroll" role="region" aria-labelledby="plans-title" tabindex="0">
 				<div class="plans-content" role="rowgroup">
 					{
-						rows.map((row: any) => (
-							<div class={`plan-row ${!row.isAvailable ? "disabled" : ""}`} data-row-id={row.id} data-is-available={row.isAvailable} role="row">
+						rows.map(row => (
+							<div class="plan-row" data-row-id={row.id} data-popup-item-id={row.popupItemId} role="row">
 								<div class="row-label" role="rowheader">
 									{row.name}
 								</div>
-								{row.values.map((value: any) => {
+								{row.values.map(value => {
 									const isAvailable = value.quantity && value.quantity !== "";
 									const isCheckmark = value.quantity === "O" || value.quantity === "o";
 
@@ -156,7 +116,7 @@ const uniqueItemIds = new Set<string>();
 									const isNumeric = isAvailable && !isNaN(Number(value.quantity));
 
 									// Get item data for unit and name
-									const itemData = value.itemId ? itemsMap.get(value.itemId) : null;
+									const itemData = value.itemId ? itemsMap.get(value.popupItemId) : null;
 									const itemUnit = itemData?.unit ? t.unit[itemData.unit] || itemData.unit : "";
 
 									// Special handling for item ID 28 (booth)
@@ -269,20 +229,12 @@ const uniqueItemIds = new Set<string>();
 	}
 
 	function addRowClickHandlers() {
-		const planRows = document.querySelectorAll("#plans [data-row-id]") as NodeListOf<HTMLElement>;
+		const planRows = document.querySelectorAll<HTMLElement>("#plans [data-popup-item-id]");
 		planRows.forEach(row => {
-			const rowIdStr = row.getAttribute("data-row-id");
-			const isAvailable = row.getAttribute("data-is-available") === "true";
-
-			// Only add click handlers and cursor to available rows
-			if (rowIdStr && isAvailable) {
-				row.style.cursor = "pointer";
-				row.addEventListener("click", function (e) {
-					e.stopPropagation();
-					const popupId = `item-popup-${rowIdStr}`;
-					window.popupCtrl(popupId, "open");
-				});
-			}
+			row.addEventListener("click", e => {
+				e.stopPropagation();
+				window.popupCtrl(`item-popup-${row.dataset.popupItemId}`, "open");
+			});
 		});
 	}
 
@@ -553,15 +505,12 @@ const uniqueItemIds = new Set<string>();
 		color: #14693e;
 		font-weight: 600;
 	}
-	.plan-row[data-row-id]:not(.disabled):hover,
-	.plan-row[data-row-id]:not(.disabled):hover .row-label {
+	.plan-row[data-popup-item-id]:hover,
+	.plan-row[data-popup-item-id]:hover .row-label {
 		background: #eff6ee;
 	}
-	.plan-row.disabled {
-		cursor: default;
-	}
-	.plan-row.disabled .plan-cell {
-		pointer-events: none;
+	.plan-row[data-popup-item-id] {
+		cursor: pointer;
 	}
 	@media screen and (max-width: 900px) {
 		section {

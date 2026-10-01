@@ -1,5 +1,3 @@
-import { getItemFormat } from "./item-filters.ts";
-
 /**
  * Utility functions for loading items data from individual markdown folders
  */
@@ -129,7 +127,7 @@ function extractLocalizedData(rawData: ItemDataRaw, locale: string, id: string):
 		remaining: rawData.remaining,
 		unit: rawData.unit,
 		type: translateType(rawData.type, locale),
-		format: getItemFormat(id, rawData.type),
+		format: rawData.type,
 		global_description: suffix === "_zh" ? rawData.global_description_zh : rawData.global_description_en,
 		talent_recruitment: suffix === "_zh" ? rawData.talent_recruitment_zh : rawData.talent_recruitment_en,
 		brand_exposure: suffix === "_zh" ? rawData.brand_exposure_zh : rawData.brand_exposure_en,

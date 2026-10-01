@@ -76,39 +76,18 @@ export function findItemByNameOrId(itemNameOrId: string): { itemId: string; item
 	return null;
 }
 
-/**
- * Get localized name for a plan benefit
- * @param benefit The benefit object from plan.json
- * @param lang Language code ("zh-Hant" or "en")
- * @returns Localized name string
- */
-export function getBenefitLocalizedName(benefit: { item_id: string; item_name: string; quantity: string }, lang: string = "zh-Hant"): string {
-	// If we have an item_id, use it to look up the item
-	if (benefit.item_id) {
-		const result = findItemByNameOrId(benefit.item_id);
-		if (result) {
-			// Use sub-item name if available, otherwise use parent item name
-			if (result.subItemData) {
-				return lang === "en" ? result.subItemData.name_en : result.subItemData.name_zh;
-			}
-			return lang === "en" ? result.itemData.name_en : result.itemData.name_zh;
-		}
-	}
+type PlanBenefit = Plan["benefits"][number];
 
-	// If no item_id, try to match by Chinese name
-	if (benefit.item_name) {
-		const result = findItemByNameOrId(benefit.item_name);
-		if (result) {
-			// Use sub-item name if available, otherwise use parent item name
-			if (result.subItemData) {
-				return lang === "en" ? result.subItemData.name_en : result.subItemData.name_zh;
-			}
-			return lang === "en" ? result.itemData.name_en : result.itemData.name_zh;
-		}
-	}
+/** Resolve both main items and sub-items, including benefits without an ID. */
+export function resolveBenefitItem(benefit: PlanBenefit) {
+	return (benefit.item_id ? findItemByNameOrId(benefit.item_id) : null) || findItemByNameOrId(benefit.item_name);
+}
 
-	// Fallback to the original item_name
-	return benefit.item_name;
+/** Get the localized name from the same item resolution used for interactions. */
+export function getBenefitLocalizedName(benefit: PlanBenefit, lang: string = "zh-Hant"): string {
+	const result = resolveBenefitItem(benefit);
+	const item = result?.subItemData || result?.itemData;
+	return item ? (lang === "en" ? item.name_en : item.name_zh) : benefit.item_name;
 }
 
 /**

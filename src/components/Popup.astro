@@ -29,15 +29,9 @@ const { title, background, btnText, hero = true, id = Math.random().toString(36)
 		}
 		<slot />
 		{
-			variant === "item" ? (
-				<button class="close-btn" type="button" aria-label={lang === "en" ? "Close" : "關閉"}>
-					<X size={20} stroke-width={1.8} />
-				</button>
-			) : (
-				<div class="close-btn">
-					<X stroke-width={3.5} />
-				</div>
-			)
+			<button class="close-btn" type="button" aria-label={lang === "en" ? "Close" : "關閉"}>
+				<X stroke-width={3.5} />
+			</button>
 		}
 	</div>
 </div>
@@ -76,6 +70,8 @@ const { title, background, btnText, hero = true, id = Math.random().toString(36)
 	}
 
 	.close-btn {
+		border: 0;
+		padding: 0;
 		width: 2.8rem;
 		aspect-ratio: 1 / 1;
 		position: absolute;
@@ -83,6 +79,14 @@ const { title, background, btnText, hero = true, id = Math.random().toString(36)
 		right: 2rem;
 		background-color: var(--black);
 		color: var(--white);
+	}
+
+	.close-btn:hover {
+		background-color: #404044;
+	}
+	.close-btn:focus-visible {
+		outline: 2px solid #14693e;
+		outline-offset: 3px;
 	}
 
 	.detail-btn .plus {
@@ -141,8 +145,8 @@ const { title, background, btnText, hero = true, id = Math.random().toString(36)
 		transform: translateY(0rem);
 	}
 
-	.item-popup-bg,
-	.item-popup-bg .popup {
+	.popup-bg.is-switching,
+	.popup-bg.is-switching .popup {
 		transition: none;
 		transform: none;
 	}
