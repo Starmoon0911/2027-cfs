@@ -1,5 +1,6 @@
 ---
-import { Plus, Check } from "@lucide/astro";
+import ItemAddButton from "./ItemAddButton.astro";
+import ItemPrice from "./ItemPrice.astro";
 import { getItemDescription } from "../../utils/items-loader";
 import Stone from "@assets/img/小石.svg";
 import { marked } from "marked";
@@ -93,28 +94,15 @@ const isSoldOut = card.remaining === "0" || (hasSubItems && card.sub.every((sub:
 	<div class="card-content">
 		<div class="title-row">
 			<h3>{card.name}</h3>
-			{
-				!isSoldOut && (
-					<button
-						type="button"
-						class="add-button"
-						data-item-id={card.id}
-						data-item-title={card.name}
-						data-item-image={card.image || ""}
-						data-item-price={card.price || ""}
-						data-item-deadline={card.deadline || ""}
-					>
-						<span class="add-icon">
-							<Plus />
-						</span>
-						<span class="added-icon">
-							<Check />
-						</span>
-					</button>
-				)
-			}
+			{!isSoldOut && <ItemAddButton id={card.id} title={card.name} image={card.image || ""} price={card.price || ""} deadline={card.deadline || ""} hasSubItems={hasSubItems} lang={lang} />}
 		</div>
-		{displayPrice && <div class="price">{displayPrice}</div>}
+		{
+			displayPrice && (
+				<div class="price">
+					<ItemPrice price={displayPrice} />
+				</div>
+			)
+		}
 		<div class="description" set:html={marked.parse(currentDescription)} />
 	</div>
 </div>
@@ -225,71 +213,7 @@ const isSoldOut = card.remaining === "0" || (hasSubItems && card.sub.every((sub:
 		font-weight: 600;
 	}
 
-	.add-button {
-		width: 2rem;
-		aspect-ratio: 1 / 1;
-		border-radius: 50%;
-		background-color: var(--black);
-		color: var(--white);
-		border: none;
-		cursor: pointer;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		transition: transform 0.2s ease;
-	}
-
-	.add-button svg {
-		width: 20px;
-		height: 20px;
-	}
-
-	.add-icon,
-	.added-icon {
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		line-height: 1;
-	}
-
-	.add-button .added-icon {
-		display: none;
-	}
-	.add-button.added .added-icon {
-		display: flex;
-	}
-	.add-button.added .add-icon {
-		display: none;
-	}
-
-	.add-button:hover {
-		transform: scale(1.1);
-	}
-
-	.add-button.added {
-		background-color: var(--items-progress);
-	}
-
-	.add-button.added:hover {
-		background-color: var(--items-progress);
-	}
-
-	.add-button:disabled,
-	.add-button.disabled {
-		background-color: var(--gray);
-		cursor: not-allowed;
-		opacity: 0.5;
-	}
-
-	.add-button:disabled:hover,
-	.add-button.disabled:hover {
-		transform: none;
-		background-color: var(--gray);
-	}
-
 	.price {
-		color: #0171e3;
-		font-weight: 600;
 		margin: -0.5rem 0 0.75rem;
 	}
 

@@ -25,7 +25,7 @@ const document = Object.assign(new EventTarget(), {
 	querySelector: selector => {
 		if (selector === ".interest-count") return count;
 		if (selector === ".cards-container") return expansion;
-		if (selector === ".item-popup-bg.show .sub-items-section") return selecting ? {} : null;
+		if (selector === ".item-popup-bg.show") return selecting ? {} : null;
 		return null;
 	},
 	querySelectorAll: () => [],
@@ -73,5 +73,5 @@ update([{ id: "12-sub-1" }, { id: "5" }]);
 assert.equal(classes.has("active"), true, "Ordinary additions retain their existing automatic preview");
 classes.clear();
 update([{ id: "12-sub-1" }, { id: "5" }, { id: "1-sub-0" }]);
-assert.equal(classes.has("active"), true, "Sub-item additions outside an open selection popup still show the preview");
-console.log("PASS: selections sync without interruption; additions outside a selection popup open the popover");
+assert.equal(classes.has("active"), true, "Sub-item additions outside an open item popup still show the preview");
+console.log("PASS: selections sync without interruption; additions outside an item popup open the popover");

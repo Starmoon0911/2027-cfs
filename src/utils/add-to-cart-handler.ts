@@ -18,11 +18,11 @@ export function handleAddButtonClick(button: HTMLElement, event: Event): void {
 
 	const id = button.getAttribute("data-item-id") || "";
 	const itemDeadline = button.getAttribute("data-item-deadline") || "";
-	const card = button.closest(".card") || button.closest(".addon-card");
+	const card = button.closest(".card, .addon-card, .popup-content");
 	const isSoldOut = card?.getAttribute("data-is-sold-out") === "true";
 
 	// Disallow interactions for sold-out or expired items
-	if (isSoldOut || isDeadlinePassed(itemDeadline)) {
+	if (button.hasAttribute("disabled") || isSoldOut || isDeadlinePassed(itemDeadline)) {
 		return; // Don't allow adding expired items
 	}
 
@@ -46,7 +46,7 @@ export function handleAddButtonClick(button: HTMLElement, event: Event): void {
 			removeInterestedItem(id);
 		} else {
 			// Add to interested items
-			const deadlineEl = card?.querySelector(".deadline-tag");
+			const deadlineEl = card?.querySelector(".deadline-tag, .category");
 			const displayDeadline = deadlineEl?.textContent || "";
 
 			// Get user's language preference (default to zh-Hant if not available)
@@ -78,7 +78,7 @@ export function updateAddButtonStates(): void {
 	addButtons.forEach(button => {
 		const itemId = button.getAttribute("data-item-id");
 		const deadline = button.getAttribute("data-item-deadline") || "";
-		const card = button.closest(".card, .addon-card") as HTMLElement | null;
+		const card = button.closest(".card, .addon-card, .popup-content") as HTMLElement | null;
 		const soldOut = card?.getAttribute("data-is-sold-out") === "true";
 
 		// Check if deadline has passed or item sold out
@@ -106,6 +106,7 @@ export function updateAddButtonStates(): void {
 				}
 			}
 
+			button.setAttribute("aria-pressed", String(hasItemInCart));
 			if (hasItemInCart) {
 				button.classList.add("added");
 			} else {

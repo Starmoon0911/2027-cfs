@@ -1,6 +1,9 @@
 ---
 import Popup from "../Popup.astro";
-import { X, Plus, ChevronLeft, ChevronRight, Check } from "@lucide/astro";
+import ItemAddButton from "./ItemAddButton.astro";
+import ItemPrice from "./ItemPrice.astro";
+import { isItemInAnyPlan } from "../../utils/plan-helper";
+import { X, ChevronLeft, ChevronRight, Check } from "@lucide/astro";
 import planData from "@data/plan.json";
 import { marked } from "marked";
 import { linkifyVenueCodes } from "../../utils/venue-linkify.ts";
@@ -11,6 +14,7 @@ const { item, t, lang, popupId } = Astro.props;
 
 // Calculate total remaining for items with sub-items
 const hasSubItems = item.sub && item.sub.length > 0;
+const displayPrice = item.price || (isItemInAnyPlan(item.id) ? (lang === "en" ? "Plan Included Item" : "方案包含項目") : "");
 const totalRemaining = hasSubItems
 	? item.sub.reduce((sum: number, sub: SubItem) => {
 			const remaining = sub.remaining === "" ? null : parseInt(sub.remaining, 10);
@@ -63,7 +67,7 @@ const shouldShowPlanTiers = tierBenefits.some(tb => tb.benefit !== undefined);
 		<button type="button" data-item-nav="prev" aria-label={lang === "en" ? "Previous item" : "上一項"}><ChevronLeft size={22} /></button>
 		<button type="button" data-item-nav="next" aria-label={lang === "en" ? "Next item" : "下一項"}><ChevronRight size={22} /></button>
 	</nav>
-	<div class="popup-content" data-item-id={item.id}>
+	<div class="popup-content" data-item-id={item.id} data-is-sold-out={isSoldOut ? "true" : "false"}>
 		<div class="item-image">
 			{
 				(() => {
@@ -137,9 +141,12 @@ const shouldShowPlanTiers = tierBenefits.some(tb => tb.benefit !== undefined);
 				<h3>{item.name}</h3>
 			</div>
 			{
-				item.price && (
-					<div class="item-price">
-						<span class="price-value">{item.price}</span>
+				!hasSubItems && (
+					<div class="item-selection-row">
+						<span class="item-selection-label">{lang === "en" ? "Save this item" : "收藏此品項"}</span>
+						<span class="item-option-line" aria-hidden="true" />
+						<ItemPrice price={displayPrice} />
+						{!isSoldOut && <ItemAddButton id={item.id} title={item.name} image={item.image || ""} price={item.price || ""} deadline={item.deadline || ""} lang={lang} />}
 					</div>
 				)
 			}
@@ -154,26 +161,11 @@ const shouldShowPlanTiers = tierBenefits.some(tb => tb.benefit !== undefined);
 							return (
 								<div class="sub-item" data-sub-item-id={subItemId}>
 									<span class="sub-item-name">{subItem.name}</span>
-									<span class="sub-item-price">{subItem.price}</span>
+									<span class="item-option-line" aria-hidden="true" />
+									<ItemPrice price={subItem.price} class="sub-item-price" />
 									{isSubItemSoldOut && <span class="sub-item-sold-out">{t.sold_out}</span>}
 									{!isSubItemSoldOut && (
-										<button
-											type="button"
-											class="sub-add-button"
-											data-sub-item-id={subItemId}
-											data-sub-item-name={subItem.name}
-											data-sub-item-price={subItem.price}
-											data-item-deadline={item.deadline || ""}
-											aria-label={lang === "en" ? `Save ${subItem.name}` : `收藏${subItem.name}`}
-											aria-pressed="false"
-										>
-											<span class="add-icon">
-												<Plus />
-											</span>
-											<span class="added-icon">
-												<Check />
-											</span>
-										</button>
+										<ItemAddButton id={subItemId} title={subItem.name} image={item.image || ""} price={subItem.price} deadline={item.deadline || ""} lang={lang} class="sub-add-button" />
 									)}
 								</div>
 							);
@@ -287,13 +279,6 @@ const shouldShowPlanTiers = tierBenefits.some(tb => tb.benefit !== undefined);
 		line-height: 1.6;
 		color: var(--black);
 		margin-bottom: 1.5rem;
-	}
-
-	.price-value {
-		font-size: 1.125rem;
-		color: var(--black);
-		font-weight: 700;
-		font-family: FiraCode, monospace;
 	}
 
 	.quantity-controls {
@@ -538,21 +523,16 @@ const shouldShowPlanTiers = tierBenefits.some(tb => tb.benefit !== undefined);
 		height: 24px;
 	}
 
-	.sub-items-section h4 {
-		font-size: 2rem;
-		margin-bottom: 1rem;
-		font-weight: 700;
-		color: var(--black);
-	}
-
+	.item-selection-row,
 	.sub-item {
 		display: grid;
-		grid-template-columns: minmax(0, 1fr) auto auto;
+		grid-template-columns: minmax(0, auto) minmax(1rem, 1fr) auto auto;
 		align-items: center;
-		gap: 0.5rem 1rem;
-		padding: 0.75rem 0;
+		gap: 0.5rem;
+		padding: 0.5rem 0;
 	}
 
+	.item-selection-label,
 	.sub-item-name {
 		font-size: 1rem;
 		font-weight: 700;
@@ -562,12 +542,20 @@ const shouldShowPlanTiers = tierBenefits.some(tb => tb.benefit !== undefined);
 		overflow-wrap: anywhere;
 	}
 
-	.sub-item-price {
-		color: rgba(0, 0, 0, 0.6);
-		font-size: 1.1rem;
-		font-family: FiraCode, monospace;
+	.item-selection-label {
+		font-weight: 400;
 	}
 
+	.item-option-line {
+		height: 1px;
+		background-color: #d2d2d7;
+		opacity: 0.4;
+	}
+
+	.item-selection-row .sponsorship-price,
+	.sub-item .sponsorship-price {
+		text-align: right;
+	}
 	.sub-item-sold-out {
 		color: #999;
 		font-size: 0.9rem;
@@ -575,76 +563,6 @@ const shouldShowPlanTiers = tierBenefits.some(tb => tb.benefit !== undefined);
 		padding: 0.2rem 0.6rem;
 		background-color: #f0f0f0;
 		border-radius: 12px;
-	}
-
-	.sub-add-button {
-		width: 2rem;
-		aspect-ratio: 1 / 1;
-		border-radius: 50%;
-		background-color: var(--black);
-		color: var(--white);
-		border: none;
-		cursor: pointer;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		transition: transform 0.2s ease;
-		flex-shrink: 0;
-	}
-
-	.sub-add-button svg {
-		width: 20px;
-		height: 20px;
-	}
-
-	.sub-add-button .add-icon,
-	.sub-add-button .added-icon {
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		line-height: 1;
-	}
-
-	.sub-add-button .added-icon {
-		display: none;
-	}
-
-	.sub-add-button.added .added-icon {
-		display: flex;
-	}
-
-	.sub-add-button.added .add-icon {
-		display: none;
-	}
-
-	.sub-add-button:hover {
-		transform: scale(1.1);
-	}
-
-	.sub-add-button:focus-visible {
-		outline: 2px solid #14693e;
-		outline-offset: 3px;
-	}
-
-	.sub-add-button.added {
-		background-color: var(--items-progress);
-	}
-
-	.sub-add-button.added:hover {
-		background-color: var(--items-progress);
-	}
-
-	.sub-add-button:disabled,
-	.sub-add-button.disabled {
-		background-color: var(--gray);
-		cursor: not-allowed;
-		opacity: 0.5;
-	}
-
-	.sub-add-button:disabled:hover,
-	.sub-add-button.disabled:hover {
-		transform: none;
-		background-color: var(--gray);
 	}
 
 	.structured-descriptions {
@@ -682,15 +600,6 @@ const shouldShowPlanTiers = tierBenefits.some(tb => tb.benefit !== undefined);
 			padding: 2rem 2rem 7rem;
 		}
 	}
-	@media screen and (max-width: 40rem) {
-		.sub-item {
-			grid-template-columns: minmax(0, 1fr) auto;
-		}
-
-		.sub-item-name {
-			grid-column: 1 / -1;
-		}
-	}
 
 	@media print {
 		.popup-content {
@@ -699,7 +608,6 @@ const shouldShowPlanTiers = tierBenefits.some(tb => tb.benefit !== undefined);
 		}
 
 		.carousel-btn,
-		.sub-add-button,
 		.quantity-controls {
 			display: none;
 		}
@@ -726,13 +634,9 @@ const shouldShowPlanTiers = tierBenefits.some(tb => tb.benefit !== undefined);
 		.tier-name,
 		.tier-arrow,
 		.tier-value,
-		.sub-item-name,
-		.sub-item-price {
+		.item-selection-label,
+		.sub-item-name {
 			font-size: 12pt;
-		}
-
-		.price-value {
-			font-size: 14pt;
 		}
 
 		.item-details {
@@ -872,109 +776,7 @@ const shouldShowPlanTiers = tierBenefits.some(tb => tb.benefit !== undefined);
 </style>
 
 <script>
-	import { addInterestedItem, removeInterestedItem, isItemInterested, isDeadlinePassed } from "../../utils/local-storage.ts";
-	import { getItemDisplayPrice } from "../../utils/plan-helper.ts";
-
 	document.addEventListener("DOMContentLoaded", function () {
-		// Sync sub-item button state with localStorage and deadline
-		function syncSubItemButton(subItemId: string) {
-			try {
-				const button = document.querySelector(`.sub-add-button[data-sub-item-id="${subItemId}"]`) as HTMLButtonElement;
-				if (!button) return;
-
-				// Check deadline
-				const deadline = button.getAttribute("data-item-deadline") || "";
-				const expired = isDeadlinePassed(deadline);
-
-				if (expired || button.closest(".sub-item")?.querySelector(".sub-item-sold-out")) {
-					button.setAttribute("disabled", "true");
-					button.classList.add("disabled");
-				} else {
-					button.removeAttribute("disabled");
-					button.classList.remove("disabled");
-				}
-
-				const isAdded = isItemInterested(subItemId);
-				button.setAttribute("aria-pressed", String(isAdded));
-				if (isAdded) {
-					button.classList.add("added");
-				} else {
-					button.classList.remove("added");
-				}
-			} catch (error) {
-				if (import.meta.env.DEV) console.error("Error syncing sub-item button:", error);
-			}
-		}
-
-		// Handle sub-item add button clicks
-		document.addEventListener("click", function (e) {
-			const target = e.target as Element;
-			const btn = target.closest(".sub-add-button") as HTMLButtonElement | null;
-			if (btn) {
-				e.preventDefault();
-				e.stopPropagation();
-				const subItemId = btn.getAttribute("data-sub-item-id");
-				if (!subItemId) return;
-
-				// Check if deadline has passed
-				const deadline = btn.getAttribute("data-item-deadline") || "";
-				if (btn.disabled || isDeadlinePassed(deadline)) {
-					return; // Don't allow adding expired items
-				}
-
-				const isAdded = isItemInterested(subItemId);
-
-				if (isAdded) {
-					// Remove from interested items
-					removeInterestedItem(subItemId);
-				} else {
-					// Add to interested items
-					const subItemName = btn.getAttribute("data-sub-item-name") || "";
-					const subItemPrice = btn.getAttribute("data-sub-item-price") || "";
-
-					// Get popup data for image and deadline
-					const popup = btn.closest(".popup-content");
-					const img = popup?.querySelector(".item-image img");
-					const itemImage = img?.getAttribute("src") || "";
-					const deadlineEl = popup?.querySelector(".category");
-					const itemDeadline = deadlineEl?.textContent || "";
-
-					// Get display price (either actual price or plan inclusion info)
-					const displayPrice = getItemDisplayPrice(subItemId, subItemPrice);
-
-					addInterestedItem({
-						id: subItemId,
-						title: subItemName,
-						category: "all",
-						image: itemImage,
-						deadline: itemDeadline,
-						price: displayPrice
-					});
-				}
-
-				syncSubItemButton(subItemId);
-			}
-		});
-
-		// Listen to itemsChange events from localStorage
-		window.addEventListener("itemsChange", function () {
-			// Sync all sub-item buttons
-			document.querySelectorAll(".sub-add-button").forEach(button => {
-				const subItemId = button.getAttribute("data-sub-item-id");
-				if (subItemId) {
-					syncSubItemButton(subItemId);
-				}
-			});
-		});
-
-		// Initial sync for sub-items on page load
-		document.querySelectorAll(".sub-add-button").forEach(button => {
-			const subItemId = button.getAttribute("data-sub-item-id");
-			if (subItemId) {
-				syncSubItemButton(subItemId);
-			}
-		});
-
 		// Carousel functionality
 		function initCarousels() {
 			document.querySelectorAll(".image-carousel").forEach(carousel => {
