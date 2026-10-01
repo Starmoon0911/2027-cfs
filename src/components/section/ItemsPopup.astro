@@ -317,8 +317,8 @@ const items = itemsUnsorted.sort((a, b) => {
 			currentCount = getInterestedItems().length;
 		}
 
-		// Selection dialogs show the summary only when the user finishes choosing.
-		const isSelecting = document.querySelector(".item-popup-bg.show [data-popup-complete]");
+		// Keep multi-option selection uninterrupted while its item popup is open.
+		const isSelecting = document.querySelector(".item-popup-bg.show .sub-items-section");
 		if (currentCount > previousInterestCount && !isSelecting) {
 			setTimeout(() => openPopover(), 0);
 		}
@@ -335,8 +335,6 @@ const items = itemsUnsorted.sort((a, b) => {
 			interestPopover.classList.add("active");
 		}
 	};
-
-	document.addEventListener("interestSelectionCompleted", openPopover);
 
 	const closePopover = () => {
 		if (interestPopover) {

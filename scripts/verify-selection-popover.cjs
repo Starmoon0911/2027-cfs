@@ -20,26 +20,18 @@ const expansion = Object.assign(new EventTarget(), {
 	setAttribute() {},
 	querySelector: () => ({ style: {} })
 });
-const completeButton = Object.assign(new EventTarget(), { dataset: { popupComplete: "item-popup-12" } });
 const document = Object.assign(new EventTarget(), {
 	documentElement: { lang: "zh-Hant" },
 	querySelector: selector => {
 		if (selector === ".interest-count") return count;
 		if (selector === ".cards-container") return expansion;
-		if (selector === ".item-popup-bg.show [data-popup-complete]") return selecting ? {} : null;
+		if (selector === ".item-popup-bg.show .sub-items-section") return selecting ? {} : null;
 		return null;
 	},
-	querySelectorAll: selector => (selector === "[data-popup-complete]" ? [completeButton] : []),
+	querySelectorAll: () => [],
 	getElementById: id => (id === "interestPopover" ? popover : id === "expandButton" ? expansion : null)
 });
-const closedPopups = [];
-const window = Object.assign(new EventTarget(), {
-	innerHeight: 900,
-	popupCtrl: (id, action) => {
-		closedPopups.push([id, action]);
-		selecting = false;
-	}
-});
+const window = Object.assign(new EventTarget(), { innerHeight: 900 });
 vm.runInNewContext(javascript, {
 	document,
 	window,
@@ -75,19 +67,11 @@ assert.equal(classes.has("active"), false, "A second selection also stays quiet"
 update([{ id: "12-sub-1" }]);
 assert.equal(count.textContent, "1");
 assert.equal(classes.has("active"), false, "Deselecting stays quiet");
-const popupScript = fs.readFileSync("src/components/items/ItemPopup.astro", "utf8").match(/<script>([\s\S]*?)<\/script>/)[1];
-vm.runInNewContext(
-	ts.transpileModule(popupScript.replace(/^\s*import .*;$/gm, "").replaceAll("import.meta.env.DEV", "false"), {
-		compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.None }
-	}).outputText,
-	{ document, window, console, CustomEvent }
-);
-document.dispatchEvent(new Event("DOMContentLoaded"));
-completeButton.dispatchEvent(new Event("click"));
-assert.deepEqual(closedPopups, [["item-popup-12", "close"]], "Completion closes the selection popup before showing the saved items");
-flush();
-assert.equal(classes.has("active"), true, "Done selecting opens the saved items once");
-classes.clear();
+// Closing the popup does not require a separate completion control.
+selecting = false;
 update([{ id: "12-sub-1" }, { id: "5" }]);
 assert.equal(classes.has("active"), true, "Ordinary additions retain their existing automatic preview");
-console.log("PASS: selections sync without interruption; completion opens the popover; ordinary additions still open it");
+classes.clear();
+update([{ id: "12-sub-1" }, { id: "5" }, { id: "1-sub-0" }]);
+assert.equal(classes.has("active"), true, "Sub-item additions outside an open selection popup still show the preview");
+console.log("PASS: selections sync without interruption; additions outside a selection popup open the popover");
