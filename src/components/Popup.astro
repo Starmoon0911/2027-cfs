@@ -16,27 +16,22 @@ const { title, background, btnText, hero = true, id = Math.random().toString(36)
 	)
 }
 
-<div class:list={["popup-bg lenis-scroll", { "item-popup-bg": variant === "item" }]}>
+<div class:list={["popup-bg lenis-scroll", `variant-${variant}`, { "item-popup-bg": variant === "item" }]}>
 	<div class={"popup " + (hero ? "" : "no-hero")}>
 		{
 			hero && (
 				<div class="popup-hero">
 					{title && <h2>{title}</h2>}
+					<slot name="hero-message" />
 					{background && <img src={background} alt="Popup Background" />}
 				</div>
 			)
 		}
 		<slot />
 		{
-			variant === "item" ? (
-				<button class="close-btn" type="button" aria-label={lang === "en" ? "Close" : "關閉"}>
-					<X size={20} stroke-width={1.8} />
-				</button>
-			) : (
-				<div class="close-btn">
-					<X stroke-width={3.5} />
-				</div>
-			)
+			<button class="close-btn" type="button" aria-label={lang === "en" ? "Close" : "關閉"}>
+				<X stroke-width={3.5} />
+			</button>
 		}
 	</div>
 </div>
@@ -75,6 +70,8 @@ const { title, background, btnText, hero = true, id = Math.random().toString(36)
 	}
 
 	.close-btn {
+		border: 0;
+		padding: 0;
 		width: 2.8rem;
 		aspect-ratio: 1 / 1;
 		position: absolute;
@@ -82,6 +79,14 @@ const { title, background, btnText, hero = true, id = Math.random().toString(36)
 		right: 2rem;
 		background-color: var(--black);
 		color: var(--white);
+	}
+
+	.close-btn:hover {
+		background-color: #404044;
+	}
+	.close-btn:focus-visible {
+		outline: 2px solid #14693e;
+		outline-offset: 3px;
 	}
 
 	.detail-btn .plus {
@@ -140,8 +145,8 @@ const { title, background, btnText, hero = true, id = Math.random().toString(36)
 		transform: translateY(0rem);
 	}
 
-	.item-popup-bg,
-	.item-popup-bg .popup {
+	.popup-bg.is-switching,
+	.popup-bg.is-switching .popup {
 		transition: none;
 		transform: none;
 	}
@@ -179,8 +184,27 @@ const { title, background, btnText, hero = true, id = Math.random().toString(36)
 		z-index: 1;
 		text-align: left;
 	}
+	.variant-opendream .popup-hero {
+		min-height: 24rem;
+		height: auto;
+		padding: 3.5rem 4rem;
+		display: flex;
+		flex-direction: column;
+		justify-content: center;
+	}
+	.variant-opendream .popup-hero h2 {
+		font-size: clamp(1.15rem, 2vw, 1.6rem);
+		margin-bottom: 1.25rem;
+	}
+	.variant-opendream .popup-hero::after {
+		background: linear-gradient(90deg, rgba(0, 0, 0, 0.86), rgba(0, 0, 0, 0.34));
+	}
 
 	@media screen and (max-width: 45rem) {
+		.variant-opendream .popup-hero {
+			min-height: 30rem;
+			padding: 4rem 1.5rem 2rem;
+		}
 		.popup-hero {
 			height: 20rem;
 			padding: 5rem 2rem 2rem;

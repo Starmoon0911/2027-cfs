@@ -149,7 +149,8 @@ const defaultSchema = {
 				if (!popupBg || !(popupBg instanceof HTMLElement)) return;
 				const isItem = popupBg.classList.contains("item-popup-bg");
 				if (action === "open") {
-					const focusDirection = document.activeElement?.getAttribute("data-item-nav");
+					const switchingItem = isItem && !!document.querySelector(".item-popup-bg.show");
+					popupBg.classList.toggle("is-switching", switchingItem);
 					if (isItem) {
 						document.querySelectorAll<HTMLElement>(".item-popup-bg.show").forEach(previous => {
 							if (previous !== popupBg) window.popupCtrl("", "close", false, previous);
@@ -163,14 +164,9 @@ const defaultSchema = {
 						popupBg.classList.add("show");
 						document.dispatchEvent(new CustomEvent("popupOpened", { detail: { id } }));
 					};
-					if (isItem) {
-						// Swap item panels in the same frame, without closing/opening animations.
-						reveal();
-						const nextControl = focusDirection ? popupBg.querySelector<HTMLButtonElement>(`[data-item-nav="${focusDirection}"]:not(:disabled)`) : null;
-						(nextControl || popupBg.querySelector<HTMLButtonElement>(".close-btn"))?.focus({ preventScroll: true });
-					} else {
-						setTimeout(reveal, 0);
-					}
+					if (switchingItem) reveal();
+					else setTimeout(reveal, 0);
+					popupBg.querySelector<HTMLButtonElement>(".close-btn")?.focus({ preventScroll: true });
 					if (updateUrl) {
 						if (id.startsWith("item-popup-")) {
 							const itemId = id.replace("item-popup-", "");
@@ -201,7 +197,7 @@ const defaultSchema = {
 						const closingId = closingPopup ? closingPopup.id : id;
 						document.dispatchEvent(new CustomEvent("popupClosed", { detail: { id: closingId } }));
 					};
-					if (isItem) hide();
+					if (isItem && !updateUrl) hide();
 					else setTimeout(hide, 300);
 					if (updateUrl) {
 						history.pushState(null, "", window.location.origin + `${import.meta.env.BASE_URL.replace(/\/$/, "")}/${document.documentElement.lang === "en" ? "en/" : ""}`);
@@ -222,21 +218,6 @@ const defaultSchema = {
 				// Plan-exclusive items can still be opened directly; fall back to the complete catalog.
 				return ids.includes(activePopupId) ? ids : Array.from(document.querySelectorAll("[id^=item-popup-]")).map(el => el.id);
 			}
-
-			function updateNavigationButtons() {
-				const ids = getItemPopupIds();
-				const index = ids.indexOf(activePopupId);
-				const bg = document.getElementById(activePopupId)?.nextElementSibling;
-				bg?.querySelectorAll<HTMLButtonElement>("[data-item-nav]").forEach(button => {
-					button.disabled = index < 0 || (button.dataset.itemNav === "prev" ? index === 0 : index === ids.length - 1);
-				});
-			}
-
-			document.addEventListener("click", event => {
-				const target = event.target as Element;
-				const button = target.closest<HTMLButtonElement>("[data-item-nav]");
-				if (button && !button.disabled) navigateToAdjacent(button.dataset.itemNav as "next" | "prev");
-			});
 
 			function navigateToAdjacent(direction: "next" | "prev") {
 				const ids = getItemPopupIds();
@@ -300,7 +281,6 @@ const defaultSchema = {
 				// Only attach for item popups
 				if (activePopupId && activePopupId.startsWith("item-popup-")) {
 					attachHandlers();
-					updateNavigationButtons();
 				} else {
 					detachHandlers();
 				}

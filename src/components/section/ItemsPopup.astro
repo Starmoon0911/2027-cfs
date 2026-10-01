@@ -17,6 +17,7 @@ const items = itemsUnsorted.sort((a, b) => {
 <script>
 	import { getInterestedItems, removeInterestedItem, isItemInterested, isDeadlinePassed } from "../../utils/local-storage.ts";
 	import { initializeAddToCart, updateAddButtonStates } from "../../utils/add-to-cart-handler.ts";
+	import { localizeInterestedItem } from "../../utils/plan-helper.ts";
 
 	// Wait for DOM to be ready before initializing add-to-cart functionality
 	document.addEventListener("DOMContentLoaded", function () {
@@ -74,51 +75,46 @@ const items = itemsUnsorted.sort((a, b) => {
 
 	const getVisibleCards = (cards: HTMLElement[]): HTMLElement[] => cards.filter(card => !card.hidden);
 
-	const isCardInactive = (card: HTMLElement) => {
-		const soldOut = card.getAttribute("data-is-sold-out") === "true";
-		const deadline = card.getAttribute("data-deadline") || "";
-		return soldOut || isDeadlinePassed(deadline);
+	const cards = Array.from(document.querySelectorAll<HTMLElement>("#item-catalog [data-card-id]"));
+	let selectedPurpose = "all";
+	const selectedFormats = new Set<string>();
+	const filterButtons = document.querySelectorAll<HTMLButtonElement>("[data-filter-group]");
+	const applyFilters = () => {
+		cards.forEach(card => {
+			card.hidden = selectedFormats.size > 0 && !selectedFormats.has(card.dataset.format || "");
+			updateCardDescription(card, selectedPurpose);
+		});
+		const orderAttribute = selectedPurpose === "all" ? "data-order" : `data-${selectedPurpose.replaceAll("_", "-")}-order`;
+		const inactive = (card: HTMLElement) => card.dataset.isSoldOut === "true" || isDeadlinePassed(card.dataset.deadline || "");
+		const rank = (card: HTMLElement) => Number(card.getAttribute(orderAttribute) || (selectedPurpose === "all" ? "0" : "999999"));
+		cards.sort((a, b) => Number(inactive(a)) - Number(inactive(b)) || rank(a) - rank(b));
+		const grid = document.querySelector("#item-catalog .cards-grid");
+		cards.forEach(card => grid?.appendChild(card));
+		filterButtons.forEach(button => {
+			const selected = button.dataset.filterGroup === "purpose" ? selectedPurpose === button.dataset.filterValue : selectedFormats.has(button.dataset.filterValue!);
+			button.setAttribute("aria-pressed", String(selected));
+		});
+		const visibleCount = getVisibleCards(cards).length;
+		const count = document.querySelector<HTMLElement>("[data-filter-count]");
+		if (count) {
+			count.textContent = (count.dataset.template || "{count}").replace("{count}", String(visibleCount));
+			count.style.visibility = selectedFormats.size ? "visible" : "hidden";
+		}
+		const empty = document.querySelector<HTMLElement>(".filter-empty");
+		if (empty) empty.hidden = visibleCount !== 0;
+		updateExpandButtonVisibility(visibleCount);
 	};
 
-	const sortCards = (selectedCategory: string) => {
-		const cardsGrid = document.querySelector(".cards-grid");
-		if (!cardsGrid) return;
-
-		const cards = Array.from(cardsGrid.querySelectorAll(".card")) as HTMLElement[];
-		// Count every card displayed in the catalog.
-		let visibleCount = getVisibleCards(cards).length;
-
-		let orderAttr = "data-order";
-		if (selectedCategory === "talent_recruitment") {
-			orderAttr = "data-talent-recruitment-order";
-		} else if (selectedCategory === "brand_exposure") {
-			orderAttr = "data-brand-exposure-order";
-		} else if (selectedCategory === "product_promotion") {
-			orderAttr = "data-product-promotion-order";
+	const updateCardDescription = (card: HTMLElement, purpose: string) => {
+		const description = card.querySelector<HTMLElement>(".description");
+		const descriptionData = card.dataset.descriptions;
+		if (!description || !descriptionData) return;
+		try {
+			const descriptions = JSON.parse(descriptionData);
+			description.textContent = descriptions[purpose] || descriptions.all || "";
+		} catch {
+			// Keep the rendered description if stored data is invalid.
 		}
-
-		cards.sort((a, b) => {
-			const aInactive = isCardInactive(a);
-			const bInactive = isCardInactive(b);
-
-			// Inactive items (sold out or deadline passed) should always go last
-			if (aInactive && !bInactive) return 1;
-			if (!aInactive && bInactive) return -1;
-
-			const orderA = parseInt(a.getAttribute(orderAttr) || (selectedCategory === "all" ? "0" : "999999"));
-			const orderB = parseInt(b.getAttribute(orderAttr) || (selectedCategory === "all" ? "0" : "999999"));
-			return orderA - orderB;
-		});
-
-		// Update ItemCard descriptions based on selected category
-		cards.forEach(card => {
-			updateCardDescription(card, selectedCategory);
-		});
-
-		// Reorder cards in the DOM
-		cards.forEach(card => cardsGrid.appendChild(card));
-
-		updateExpandButtonVisibility(visibleCount);
 	};
 
 	const getCardsPerRowThreshold = () => {
@@ -129,23 +125,6 @@ const items = itemsUnsorted.sort((a, b) => {
 			return 4;
 		} else {
 			return 6;
-		}
-	};
-
-	const updateCardDescription = (card: HTMLElement, selectedCategory: string) => {
-		const descriptionElement = card.querySelector(".description");
-		if (!descriptionElement) return;
-
-		// Get stored description data from card attributes
-		const descriptionData = card.getAttribute("data-descriptions");
-		if (descriptionData) {
-			try {
-				const descriptions = JSON.parse(descriptionData);
-				const newDescription = descriptions[selectedCategory] || descriptions["all"] || "";
-				descriptionElement.textContent = newDescription;
-			} catch (e) {
-				// Fallback to original description if JSON parsing fails
-			}
 		}
 	};
 
@@ -166,38 +145,29 @@ const items = itemsUnsorted.sort((a, b) => {
 		}
 	};
 
-	const tabButtons = document.querySelectorAll(".tab");
-	tabButtons.forEach(button => {
+	filterButtons.forEach(button => {
 		button.addEventListener("click", () => {
-			const buttonElement = button;
-
-			tabButtons.forEach(tab => tab.classList.remove("active"));
-
-			buttonElement.classList.add("active");
-
-			const category = buttonElement.getAttribute("data-category") || "all";
-
-			sortCards(category);
+			const value = button.dataset.filterValue!;
+			if (button.dataset.filterGroup === "purpose") selectedPurpose = selectedPurpose === value ? "all" : value;
+			else if (selectedFormats.has(value)) selectedFormats.delete(value);
+			else selectedFormats.add(value);
+			applyFilters();
 		});
 	});
-
+	document.querySelector("[data-clear-filters]")?.addEventListener("click", () => {
+		selectedFormats.clear();
+		applyFilters();
+		document.querySelector<HTMLButtonElement>('[data-filter-group="purpose"]')?.focus();
+	});
 	document.querySelectorAll<HTMLAnchorElement>("[data-item-category]").forEach(link => {
 		link.addEventListener("click", () => {
-			const category = link.dataset.itemCategory;
-			document.querySelector<HTMLButtonElement>(`.tab[data-category="${category}"]`)?.click();
+			selectedFormats.clear();
+			if (link.dataset.itemCategory) selectedPurpose = link.dataset.itemCategory;
+			applyFilters();
 		});
 	});
-	// Match the initial all-category order to the cards, including availability.
-	sortCards("all");
-
-	const totalCards = getVisibleCards(Array.from(document.querySelectorAll(".card")) as HTMLElement[]).length;
-	updateExpandButtonVisibility(totalCards);
-	applyExpandState();
-
-	window.addEventListener("resize", () => {
-		const allCards = getVisibleCards(Array.from(document.querySelectorAll(".card")) as HTMLElement[]);
-		updateExpandButtonVisibility(allCards.length);
-	});
+	applyFilters();
+	window.addEventListener("resize", () => updateExpandButtonVisibility(getVisibleCards(cards).length));
 
 	// Use the shared utility function for syncing add buttons
 	const syncAllAddButtons = updateAddButtonStates;
@@ -230,7 +200,7 @@ const items = itemsUnsorted.sort((a, b) => {
 	};
 
 	const renderInterestItemsList = () => {
-		const items = getInterestedItems();
+		const items = getInterestedItems().map(item => localizeInterestedItem(item, document.documentElement.lang));
 		const listContainer = document.getElementById("interestItemsList");
 
 		if (!listContainer) return;

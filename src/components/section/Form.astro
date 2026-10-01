@@ -4,8 +4,8 @@ const en = lang === "en";
 ---
 
 <section id="form" data-contact-lang={lang}>
-	<h2>{en ? "Let’s build SITCON 2027 together" : "一起成就 SITCON 2027"}</h2>
-	<p class="intro">{en ? "Leave a way to reach you and we’ll discuss a suitable partnership together." : "留下方便聯絡您的方式，我們會與您一起討論適合的合作方式。"}</p>
+	<h2>{en ? "Let's build SITCON 2027 together" : "一起成就 SITCON 2027"}</h2>
+	<p class="intro">{en ? "Leave a way to reach you and we'll discuss a suitable partnership together." : "留下方便聯絡您的方式，我們會與您一起討論適合的合作方式。"}</p>
 	<form id="sponsor-form" data-error={t.messages.error}>
 		<div class="identity">
 			<div><label for="organization">{t.fields.organization.title} <span aria-hidden="true">*</span></label><input id="organization" name="organization" autocomplete="organization" required /></div>
@@ -23,7 +23,7 @@ const en = lang === "en";
 		>
 		</textarea>
 		<div class="selection"><p>{en ? "Plans / items of interest" : "感興趣的方案／品項"}</p><p id="inquiry-selection"></p></div>
-		<button type="submit" id="submit">{en ? "Let’s talk" : "送出合作洽詢"}</button>
+		<button type="submit" id="submit">{en ? "Let's talk" : "送出合作洽詢"}</button>
 		<p id="form-message" role="status" aria-live="polite"></p>
 	</form>
 	<p class="alternative">{en ? "You can also email us at" : "也歡迎直接來信"} <a href="mailto:contact@sitcon.org">contact@sitcon.org</a></p>
@@ -31,6 +31,7 @@ const en = lang === "en";
 </section>
 <script>
 	import { getInterestedItems } from "../../utils/local-storage.ts";
+	import { localizeInterestedItem } from "../../utils/plan-helper.ts";
 
 	// Legacy endpoint: the development team must confirm the 2027 recipient/form before launch.
 	const apiUrl = "https://docs.google.com/forms/d/e/1FAIpQLSftAam5nJJQU925yOzuMoome-XY3MEs7idtbd56eqMDRrPKGw/formResponse";
@@ -41,6 +42,7 @@ const en = lang === "en";
 	const en = document.documentElement.lang === "en";
 	const selectionText = () =>
 		getInterestedItems()
+			.map(item => localizeInterestedItem(item, document.documentElement.lang))
 			.map(item => `• ${item.title}${item.price ? ` — ${item.price}` : ""}`)
 			.join("\n");
 	function updateSelection() {
@@ -153,6 +155,8 @@ const en = lang === "en";
 		margin-top: 0.4rem;
 	}
 	button {
+		display: block;
+		margin-inline: auto;
 		padding: 0.8rem 2rem;
 		border: none;
 		border-radius: 2rem;
